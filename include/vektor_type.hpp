@@ -1,5 +1,5 @@
-#ifndef __VEKTOR_TYPE_HPP
-#define __VEKTOR_TYPE_HPP
+#ifndef __VECTOR_3D_HPP
+#define __VECTOR_3D_HPP
 
 #include <cassert>
 #include <cmath>
@@ -11,249 +11,294 @@
 #include <tuple>
 #include <type_traits>
 
-#if defined __CUDA_ARCH__  or defined __NVCC__ 
-        #define __target__ __host__ __device__ 
+#if defined __CUDA_ARCH__ or defined __NVCC__ 
+    #define __target__ __host__ __device__ 
 #else 
-        #define __target__ 
+    #define __target__ 
 #endif 
 
 namespace math 
 {
-    // :::::::::::::::::::::::::::::: types and constants:
-
-    #if defined( __CUDA_ARCH__ ) and __CUDA_ARCH__ < 600 
-    __device__ double atomicAdd( double* address, double const val )
+    // CUDA compatibility for older architectures (< 6.0)
+    #if defined(__CUDA_ARCH__) and __CUDA_ARCH__ < 600 
+    __device__ double atomicAdd(double* address, double const val)
     {
-        unsigned long long int* address_as_ull = ( unsigned long long int* ) address;
+        unsigned long long int* address_as_ull = (unsigned long long int*)address;
         unsigned long long int old = *address_as_ull, assumed;
        
-        do 
-        {
+        do {
             assumed = old;
-            old = atomicCAS( address_as_ull, assumed, __double_as_longlong( val + __longlong_as_double( assumed ) ) );
+            old = atomicCAS(address_as_ull, assumed, 
+                           __double_as_longlong(val + __longlong_as_double(assumed)));
         } 
         while (assumed != old);
                         
-        return __longlong_as_double( old );
+        return __longlong_as_double(old);
     }
     #endif
 
-    template< typename base_type >
-    struct vektor_type
+    /**
+     * @brief 3D vector template class optimized for CUDA compatibility
+     * 
+     * This struct provides efficient 3D vector operations with support for both
+     * CPU and GPU execution. Direct member access ensures optimal performance
+     * in CUDA kernels and tight computational loops.
+     * 
+     * @tparam T Base type (float, double, int, etc.)
+     */
+    template<typename T>
+    struct Vector3D
     {
-        base_type x, y, z;
-            
-        inline vektor_type()                     = default;
-        inline vektor_type( vektor_type const& ) = default;
-        inline vektor_type( vektor_type&& )      = default;
+        T x, y, z;
+        
+        // Constructors
+        inline Vector3D() = default;
+        inline Vector3D(const Vector3D&) = default;
+        inline Vector3D(Vector3D&&) = default;
 
-        __target__ inline vektor_type( base_type _x, base_type _y, base_type _z ) : x(_x ), y(_y ), z(_z ) {}  
-            
-        template< typename T > 
-        __target__ inline vektor_type( vektor_type< T > const& v )
+        __target__ inline Vector3D(T _x, T _y, T _z) : x(_x), y(_y), z(_z) {}  
+        
+        // Template constructor for type conversion
+        template<typename U> 
+        __target__ inline Vector3D(const Vector3D<U>& v)
         {
-            x = static_cast< base_type >( v.x ); 
-            y = static_cast< base_type >( v.y ); 
-            z = static_cast< base_type >( v.z ); 
+            x = static_cast<T>(v.x); 
+            y = static_cast<T>(v.y); 
+            z = static_cast<T>(v.z); 
         }
       
-        inline vektor_type& operator = ( vektor_type const& ) = default;
-        inline vektor_type& operator = ( vektor_type&& )      = default;
+        // Assignment operators
+        inline Vector3D& operator=(const Vector3D&) = default;
+        inline Vector3D& operator=(Vector3D&&) = default;
   
-        template< typename T >
-        __target__ inline vektor_type& operator = ( vektor_type< T > const& v )
+        template<typename U>
+        __target__ inline Vector3D& operator=(const Vector3D<U>& v)
         {
-            x = static_cast< base_type >( v.x ); 
-            y = static_cast< base_type >( v.y ); 
-            z = static_cast< base_type >( v.z ); 
-
+            x = static_cast<T>(v.x); 
+            y = static_cast<T>(v.y); 
+            z = static_cast<T>(v.z); 
             return *this;
         }
         
-        __target__ inline bool sane() const 
+        // Utility functions
+        __target__ inline bool isFinite() const 
         { 
-            return isfinite( x ) and isfinite( y ) and isfinite( z );
+            return isfinite(x) && isfinite(y) && isfinite(z);
         }
 
-        __target__ inline vektor_type& operator=  ( base_type const& d )         { x = d; y = d; z = d; return *this; }
-        __target__ inline bool         operator== ( vektor_type const& o ) const { return ( x == o.x ) && ( y == o.y ) && ( z == o.z ); }
-        __target__ inline vektor_type& operator+= ( vektor_type const& o )       { x += o.x; y += o.y; z += o.z; return *this; }
-        __target__ inline vektor_type& operator-= ( vektor_type const& o )       { x -= o.x; y -= o.y; z -= o.z; return *this; }
-        __target__ inline vektor_type& operator+= ( base_type const& d )         { x += d; y += d; z += d; return *this; }
-        __target__ inline vektor_type& operator-= ( base_type const& d )         { x -= d; y -= d; z -= d; return *this; }
-        __target__ inline vektor_type& operator*= ( base_type const& d )         { x *= d; y *= d; z *= d; return *this; }
-        __target__ inline vektor_type& operator/= ( base_type const& d )         { x *= ( base_type( 1 ) / d ); y *= ( base_type( 1 ) / d ); z *= ( base_type( 1 ) / d ); return *this; }
-        __target__ inline vektor_type& operator/= ( vektor_type const& o )       { x /= o.x; y /= o.y; z /= o.z; return *this; }
+        // Scalar assignment and comparison operators
+        __target__ inline Vector3D& operator=(T const& value)         { x = value; y = value; z = value; return *this; }
+        __target__ inline bool       operator==(const Vector3D& o) const { return (x == o.x) && (y == o.y) && (z == o.z); }
+        __target__ inline bool       operator!=(const Vector3D& o) const { return (x != o.x) || (y != o.y) || (z != o.z); }
+        __target__ inline bool       operator==(T const& value) const { return (x == value) && (y == value) && (z == value); }
+        __target__ inline bool       operator!=(T const& value) const { return (x != value) || (y != value) || (z != value); }
+
+        // Vector arithmetic operators
+        __target__ inline Vector3D& operator+=(const Vector3D& o)       { x += o.x; y += o.y; z += o.z; return *this; }
+        __target__ inline Vector3D& operator-=(const Vector3D& o)       { x -= o.x; y -= o.y; z -= o.z; return *this; }
+        __target__ inline Vector3D& operator*=(const Vector3D& o)       { x *= o.x; y *= o.y; z *= o.z; return *this; }
+        __target__ inline Vector3D& operator/=(const Vector3D& o)       { x /= o.x; y /= o.y; z /= o.z; return *this; }
         
-        __target__ inline vektor_type< int > operator%  ( vektor_type< int > const& o ) const { return { static_cast< int >( x ) % o.x, static_cast< int >( y ) % o.y, static_cast< int >( z ) % o.z }; }
-        __target__ inline vektor_type< int > operator%= ( vektor_type< int > const& o )       { x = x % o.x; y = y % o.y; z = z % o.z; return *this; }
+        // Scalar arithmetic operators
+        __target__ inline Vector3D& operator+=(T const& value)         { x += value; y += value; z += value; return *this; }
+        __target__ inline Vector3D& operator-=(T const& value)         { x -= value; y -= value; z -= value; return *this; }
+        __target__ inline Vector3D& operator*=(T const& value)         { x *= value; y *= value; z *= value; return *this; }
+        __target__ inline Vector3D& operator/=(T const& value)         { T inv = T(1) / value; x *= inv; y *= inv; z *= inv; return *this; }
+        
+        // Modulo operators (for integer types)
+        __target__ inline Vector3D<int> operator%(const Vector3D<int>& o) const 
+        { 
+            return { static_cast<int>(x) % o.x, static_cast<int>(y) % o.y, static_cast<int>(z) % o.z }; 
+        }
+        __target__ inline Vector3D& operator%=(const Vector3D<int>& o)       
+        { 
+            x = x % o.x; y = y % o.y; z = z % o.z; return *this; 
+        }
 
-        __target__ inline vektor_type operator-  ( vektor_type const& o ) const { vektor_type tmp = { x - o.x , y - o.y , z - o.z }; return tmp; }
-        __target__ inline vektor_type operator-  ( base_type const& d )   const { vektor_type tmp = { x - d , y - d , z - d }; return tmp; }
-        __target__ inline vektor_type operator+  ( vektor_type const& o ) const { vektor_type tmp = { x + o.x , y + o.y , z + o.z }; return tmp; }
-        __target__ inline vektor_type operator+  ( base_type const& d )   const { vektor_type tmp = { x + d , y + d , z + d }; return tmp; }
-        __target__ inline vektor_type operator*  ( base_type const& d )   const { vektor_type tmp = { x*d , y*d , z*d }; return tmp; }
-        __target__ inline vektor_type operator/  ( base_type const& i )   const { vektor_type tmp = { x * ( base_type( 1 ) / i ) , y * ( base_type( 1 ) / i ) , z * ( base_type( 1 ) / i ) }; return tmp; }
-        __target__ inline base_type&  operator[] ( size_t const& i )            { return (&x)[i]; }
-        __target__ inline vektor_type operator - ()                       const { return { -x, -y, -z }; }
+        // Binary arithmetic operators
+        __target__ inline Vector3D operator-(const Vector3D& o) const { return { x - o.x, y - o.y, z - o.z }; }
+        __target__ inline Vector3D operator-(T const& value) const { return { x - value, y - value, z - value }; }
+        __target__ inline Vector3D operator+(const Vector3D& o) const { return { x + o.x, y + o.y, z + o.z }; }
+        __target__ inline Vector3D operator+(T const& value) const { return { x + value, y + value, z + value }; }
+        __target__ inline Vector3D operator*(T const& value) const { return { x * value, y * value, z * value }; }
+        __target__ inline Vector3D operator/(T const& value) const 
+        { 
+            T inv = T(1) / value; 
+            return { x * inv, y * inv, z * inv }; 
+        }
+        __target__ inline Vector3D operator-() const { return { -x, -y, -z }; }
 
-        //template< typename T > 
-        //__target__ inline vektor_type operator* ( T const& t )          const { return operator *( static_cast< base_type >( t ) ); }
+        // Array-style access
+        __target__ inline T& operator[](size_t const& i) { return (&x)[i]; }
+        __target__ inline const T& operator[](size_t const& i) const { return (&x)[i]; }
             
-        __target__ inline bool operator== ( base_type const& p )   const { return ( x == p ) && ( y == p ) && ( z == p ); }
-        __target__ inline bool operator!= ( base_type const& p )   const { return ( x != p ) || ( y != p ) || ( z != p ); }
-        __target__ inline bool operator!= ( vektor_type const& p ) const { return ( x != p.x ) || ( y != p.y ) || ( z != p.z ); }
-        
-        __target__ inline vektor_type< int > operator<  ( base_type const& p )   const { return { x < p, y < p, z < p }; }
-        __target__ inline vektor_type< int > operator>  ( base_type const& p )   const { return { x > p, y > p, z > p }; }
-        __target__ inline vektor_type< int > operator<  ( vektor_type const& p ) const { return { x < p.x, y < p.y, z < p.z }; }
-        __target__ inline vektor_type< int > operator>  ( vektor_type const& p ) const { return { x > p.x, y > p.y, z > p.z }; }
+        // Comparison operators returning element-wise results
+        __target__ inline Vector3D<int> operator<(T const& value) const { return { x < value, y < value, z < value }; }
+        __target__ inline Vector3D<int> operator>(T const& value) const { return { x > value, y > value, z > value }; }
+        __target__ inline Vector3D<int> operator<(const Vector3D& p) const { return { x < p.x, y < p.y, z < p.z }; }
+        __target__ inline Vector3D<int> operator>(const Vector3D& p) const { return { x > p.x, y > p.y, z > p.z }; }
            
-        __target__ vektor_type< int > operator&& ( vektor_type const& o ) const { return { x and o.x, y and o.y, z and o.z }; }
-        __target__ inline bool any() const { return x or  y or  z; }
-        __target__ inline bool all() const { return x and y and z; }
-        __target__ vektor_type< int > elementwise_equal( vektor_type const& o ) const { return { x == o.x, y == o.y, z == o.z }; } 
+        // Logical operators
+        __target__ Vector3D<int> operator&&(const Vector3D& o) const { return { x && o.x, y && o.y, z && o.z }; }
+        __target__ inline bool any() const { return x || y || z; }
+        __target__ inline bool all() const { return x && y && z; }
+        __target__ Vector3D<int> elementWiseEqual(const Vector3D& o) const { return { x == o.x, y == o.y, z == o.z }; } 
 
-        __target__ inline void   set( base_type xx, base_type yy, base_type zz )    { x = xx; y = yy; z = zz; }
-        __target__ inline base_type trace()                                   const { return x + y + z; }
-        __target__ inline base_type diagonal_product()                        const { return x * y * z; }
-        __target__ inline base_type squared()                                 const { return x*x + y*y + z*z; }
-        __target__ inline base_type    dot_product  ( vektor_type const& o )  const { return  x*o.x + y*o.y + z*o.z; }
-        __target__ inline base_type    dot          ( vektor_type const& o )  const { return  dot_product( o ); }
-        __target__ inline vektor_type  cross_product( vektor_type const& o )  const { vektor_type tmp = { y*o.z - z*o.y , z*o.x - x*o.z , x*o.y - y*o.x }; return tmp; }
-        __target__ inline vektor_type  cross        ( vektor_type const& o )  const { return  cross_product( o ); }
-
-        __target__ inline base_type length() const 
+        // Vector operations
+        __target__ inline void set(T xx, T yy, T zz) { x = xx; y = yy; z = zz; }
+        __target__ inline T trace() const { return x + y + z; }
+        __target__ inline T diagonalProduct() const { return x * y * z; }
+        __target__ inline T getSquared() const { return x*x + y*y + z*z; }
+        __target__ inline T dotProduct(const Vector3D& o) const { return x*o.x + y*o.y + z*o.z; }
+        __target__ inline T dot(const Vector3D& o) const { return dotProduct(o); }
+        __target__ inline Vector3D crossProduct(const Vector3D& o) const 
         { 
-            return sqrt( squared() );
-/*            #ifdef __CUDA_ARCH__
-                if ( std::is_same< base_type, double >::value )  
-                    return norm3d( x, y, z );
-                else if ( std::is_same< base_type, float >::value )  
-                    return norm3df( x, y, z );
-                else 
-                    return sqrt( squared() );
-            #else
-                return sqrt( squared() );
-            #endif */
+            return { y*o.z - z*o.y, z*o.x - x*o.z, x*o.y - y*o.x }; 
+        }
+        __target__ inline Vector3D cross(const Vector3D& o) const { return crossProduct(o); }
+
+        /**
+         * @brief Calculate the Euclidean length of the vector
+         * @return Magnitude of the vector
+         */
+        __target__ inline T length() const 
+        { 
+            return sqrt(getSquared());
         }
         
-        __target__ inline vektor_type periodic() const 
+        /**
+         * @brief Apply periodic boundary conditions (map to [-0.5, 0.5])
+         * @return Vector with components wrapped to periodic bounds
+         */
+        __target__ inline Vector3D periodic() const 
         { 
-            return { x - static_cast< base_type >( rintf( x ) ),
-                     y - static_cast< base_type >( rintf( y ) ),
-                     z - static_cast< base_type >( rintf( z ) ) };
+            return { x - static_cast<T>(rintf(x)),
+                     y - static_cast<T>(rintf(y)),
+                     z - static_cast<T>(rintf(z)) };
         }
                                                                                 
-        __target__ inline vektor_type inverse()                               const { vektor_type tmp = { base_type( 1 ) / x, base_type( 1 ) / y, base_type( 1 ) / z }; return tmp; }
-        __target__ inline vektor_type scaled_with    ( vektor_type const& o ) const { vektor_type tmp = { x*o.x, y*o.y, z*o.z }; return tmp; }
-        __target__ inline vektor_type xy_scaled_with ( vektor_type const& o ) const { vektor_type tmp = { x*o.x, y*o.y, z     }; return tmp; }
-        __target__ inline base_type angle_inbetween( vektor_type const& o )   const { return acos( dot_product( o ) / ( o.length() * length() ) ); }
-        __target__ inline vektor_type unit_vektor() const 
+        __target__ inline Vector3D getInverse() const { return { T(1) / x, T(1) / y, T(1) / z }; }
+        __target__ inline Vector3D scaledWith(const Vector3D& o) const { return { x*o.x, y*o.y, z*o.z }; }
+        __target__ inline Vector3D xyScaledWith(const Vector3D& o) const { return { x*o.x, y*o.y, z }; }
+        __target__ inline T angleBetween(const Vector3D& o) const 
         { 
-            base_type il = 1 / length(); 
-            return { x*il, y*il, z*il }; 
+            return acos(dotProduct(o) / (o.length() * length())); 
+        }
+        __target__ inline Vector3D unitVector() const 
+        { 
+            T invLength = T(1) / length(); 
+            return { x * invLength, y * invLength, z * invLength }; 
         }
        
+        // CUDA atomic operations
         #if defined __CUDA_ARCH__ or defined __NVCC__ 
-        __device__ inline void atomic_add( vektor_type const& v ) 
+        __device__ inline void atomicAdd(const Vector3D& v) 
         {
-            atomicAdd( &x, v.x ); 
-            atomicAdd( &y, v.y ); 
-            atomicAdd( &z, v.z ); 
+            ::atomicAdd(&x, v.x); 
+            ::atomicAdd(&y, v.y); 
+            ::atomicAdd(&z, v.z); 
         } 
 
-        __device__ inline void atomic_add( base_type const& a, base_type const& b, base_type const& c ) 
+        __device__ inline void atomicAdd(T const& a, T const& b, T const& c) 
         {
-            atomicAdd( &x, a );
-            atomicAdd( &y, b );
-            atomicAdd( &z, c );
+            ::atomicAdd(&x, a);
+            ::atomicAdd(&y, b);
+            ::atomicAdd(&z, c);
         }
         #endif
 
-        template< typename F >
-        __target__ void element_wise( F&& f ) { f(x); f(y); f(z);  }
+        // Apply function to each element
+        template<typename F>
+        __target__ void elementWise(F&& f) { f(x); f(y); f(z); }
 
-        inline void write_binary( ::std::ofstream &stream ) const
+        // Binary I/O operations
+        inline void writeBinary(std::ofstream& stream) const
         {
-            stream.write( (char*) &x , 3 * sizeof( base_type ) );
+            stream.write((char*)&x, 3 * sizeof(T));
         }
 
-        inline void read_binary(  ::std::ifstream &stream )
+        inline void readBinary(std::ifstream& stream)
         {
-            stream.read(  (char*) &x , 3 * sizeof( base_type ) );
+            stream.read((char*)&x, 3 * sizeof(T));
         }
 
         __target__ inline void print() const
         {
-           printf( "%f, %f, %f\n", x, y, z );
+           printf("%f, %f, %f\n", static_cast<float>(x), static_cast<float>(y), static_cast<float>(z));
         }
     };
 
-    template< typename T >
-    __target__ inline vektor_type< T >      operator - ( T t,      vektor_type< T > v ) { return -( v - t ); }
-    template< typename T >
-    __target__ inline vektor_type< T >      operator + ( T t,      vektor_type< T > v ) { return v + t; }
-    template< typename T >
-    __target__ inline vektor_type< T >      operator * ( T t,      vektor_type< T > v ) { return v * t; }
-    __target__ inline vektor_type< double > operator * ( float t,  vektor_type< double > v ) { return v * static_cast< double >( t ); }
-    __target__ inline vektor_type< float >  operator * ( double t, vektor_type< float > v )  { return v * static_cast< float >( t ); }
-    template< typename T >
-    __target__ inline vektor_type< T > operator / ( T d, vektor_type< T > v ) { return v / d; }
+    // Global operators for scalar-vector operations
+    template<typename T>
+    __target__ inline Vector3D<T> operator-(T t, const Vector3D<T>& v) { return -(v - t); }
+    template<typename T>
+    __target__ inline Vector3D<T> operator+(T t, const Vector3D<T>& v) { return v + t; }
+    template<typename T>
+    __target__ inline Vector3D<T> operator*(T t, const Vector3D<T>& v) { return v * t; }
+    __target__ inline Vector3D<double> operator*(float t, const Vector3D<double>& v) { return v * static_cast<double>(t); }
+    __target__ inline Vector3D<float> operator*(double t, const Vector3D<float>& v) { return v * static_cast<float>(t); }
+    template<typename T>
+    __target__ inline Vector3D<T> operator/(T d, const Vector3D<T>& v) { return v / d; }
 
-    template< typename base_type >
-    static ::std::ostream& operator<< ( ::std::ostream& os, vektor_type< base_type > const& v )
+    // Stream operators
+    template<typename T>
+    static std::ostream& operator<<(std::ostream& os, const Vector3D<T>& v)
     {
         os << v.x << " " << v.y << " " << v.z;
         return os;
     }
 
-    template< typename base_type >
-    static ::std::istream& operator>> ( ::std::istream& is, vektor_type< base_type > &v )
+    template<typename T>
+    static std::istream& operator>>(std::istream& is, Vector3D<T>& v)
     {
         is >> v.x >> v.y >> v.z;
         return is;
     }
 
-    using float_type    = float;
-    using vektor        = vektor_type< float_type >;
-    using float_vektor  = vektor_type< float >;
-    using double_vektor = vektor_type< double >;
-    using int_vektor    = vektor_type< int >;
-    using uint_vektor   = vektor_type< uint32_t >;
+    // Type aliases for common use cases
+    using FloatType = float;
+    using Vector = Vector3D<FloatType>;
+    using FloatVector = Vector3D<float>;
+    using DoubleVector = Vector3D<double>;
+    using IntVector = Vector3D<int>;
+    using UintVector = Vector3D<uint32_t>;
 
-    /**
-     *  component wise !!!
-     */                                                       
+    // Component-wise mathematical functions
     __target__ __inline__
-    vektor  max( vektor v, vektor w ) { return { fmaxf( v.x, w.x ), 
-                                                 fmaxf( v.y, w.y ), 
-                                                 fmaxf( v.z, w.z ) }; } 
+    Vector max(const Vector& v, const Vector& w) 
+    { 
+        return { fmaxf(v.x, w.x), fmaxf(v.y, w.y), fmaxf(v.z, w.z) }; 
+    } 
     __target__ __inline__                           
-    vektor  min( vektor v, vektor w ) { return { fminf( v.x, w.x ), 
-                                                 fminf( v.y, w.y ), 
-                                                 fminf( v.z, w.z ) }; }
+    Vector min(const Vector& v, const Vector& w) 
+    { 
+        return { fminf(v.x, w.x), fminf(v.y, w.y), fminf(v.z, w.z) }; 
+    }
 
     __target__ __inline__
-    vektor floor( vektor v ) { return {  floorf(v.x), 
-                                         floorf(v.y), 
-                                         floorf(v.z) }; } 
+    Vector floor(const Vector& v) 
+    { 
+        return { floorf(v.x), floorf(v.y), floorf(v.z) }; 
+    } 
     __target__ __inline__
-    vektor round( vektor v ) { return {  roundf(v.x), 
-                                         roundf(v.y), 
-                                         roundf(v.z) }; }
+    Vector round(const Vector& v) 
+    { 
+        return { roundf(v.x), roundf(v.y), roundf(v.z) }; 
+    }
     __target__ __inline__
-    vektor abs( vektor v ) { return {  fabsf(v.x), 
-                                       fabsf(v.y), 
-                                       fabsf(v.z) }; }
+    Vector abs(const Vector& v) 
+    { 
+        return { fabsf(v.x), fabsf(v.y), fabsf(v.z) }; 
+    }
 
+    // Mathematical constants
     namespace constants 
     {
-        vektor const x_axis = { 1, 0, 0 },
-                     y_axis = { 0, 1, 0 },
-                     z_axis = { 0, 0, 1 };
+        const Vector xAxis = { 1, 0, 0 };
+        const Vector yAxis = { 0, 1, 0 };
+        const Vector zAxis = { 0, 0, 1 };
     }
 }
 
 #undef __target__ 
-#endif // __VEKTOR_TYPE_HPP
+#endif // __VECTOR_3D_HPP
