@@ -17,12 +17,13 @@ find_package(pybind11 QUIET)
 # Compile CUDA files separately
 add_library(simulator SHARED
     src/mpcd/api/simulator_handle.cu
-    src/mpcd/common/simulation_parameters.cu
+    src/mpcd/api/simulation_parameters.cu
     src/mpcd/cuda_backend/cuda_backend.cu
     src/mpcd/cuda_backend/gpu_arrays.cu
     src/mpcd/cuda_backend/simulation_kernels.cu
     src/mpcd/cuda_backend/extended_collision.cu
     src/mpcd/cuda_backend/cuda_allocator.cu
+    src/mpcd/cpu_backend/cpu_backend.cpp
     src/mpcd/adapters/hdf5/h5cpp.cpp
 )
 target_include_directories(simulator
@@ -52,27 +53,27 @@ target_link_libraries(mpcd_main
     PRIVATE simulator
 )
 
-pybind11_add_module(simulator_bindings
+pybind11_add_module(pympcd
     bindings/bindings.cpp
     $<TARGET_OBJECTS:simulator>
 )
 
 # Set CUDA properties
-set_property(TARGET simulator_bindings PROPERTY CUDA_ARCHITECTURES 61 72)
-set_target_properties(simulator_bindings PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-set_property(TARGET simulator_bindings PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS ON)
+set_property(TARGET pympcd PROPERTY CUDA_ARCHITECTURES 61 72)
+set_target_properties(pympcd PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+set_property(TARGET pympcd PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS ON)
 
 # Set C++ standard
-target_compile_features(simulator_bindings PUBLIC cxx_std_17)
+target_compile_features(pympcd PUBLIC cxx_std_17)
 
 # Link libraries
-target_link_libraries(simulator_bindings PUBLIC ${HDF5_LIBRARIES})
+target_link_libraries(pympcd PUBLIC ${HDF5_LIBRARIES})
 
 # Compiler-specific options
-target_compile_definitions(simulator_bindings PRIVATE VERSION_INFO="1.0.0")
+target_compile_definitions(pympcd PRIVATE VERSION_INFO="1.0.0")
 
 # Set output directory
-set_target_properties(simulator_bindings PROPERTIES
+set_target_properties(pympcd PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
-install(TARGETS simulator_bindings LIBRARY DESTINATION python/mpcd)
+install(TARGETS pympcd LIBRARY DESTINATION python/mpcd)

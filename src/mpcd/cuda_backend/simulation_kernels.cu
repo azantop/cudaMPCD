@@ -1,4 +1,4 @@
-#include <mpcd/common/simulation_parameters.hpp>
+#include <mpcd/api/simulation_parameters.hpp>
 
 #include "simulation_kernels.hpp"
 #include "mechanic.hpp"
@@ -309,7 +309,7 @@ namespace mpcd::cuda {
         /**
         *  @brief 1st step to compute the fluid state on the grid of the SRD collision cell
         */
-        __global__ void addParticles(SimulationParameters parameters, DeviceVolumeContainer<MPCCell> mpc_cells, DeviceVector<Particle> particles) {
+        __global__ void addParticles(DeviceVolumeContainer<MPCCell> mpc_cells, DeviceVector<Particle> particles) {
             size_t idx    = blockIdx.x * blockDim.x + threadIdx.x,
                 stride = blockDim.x * gridDim.x;
 

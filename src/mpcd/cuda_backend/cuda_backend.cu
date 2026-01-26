@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <string>
 
-#include <mpcd/common/simulation_parameters.hpp>
+#include <mpcd/api/simulation_parameters.hpp>
 
 #include "cuda_backend.hpp"
 #include "adapters/hdf5/h5cpp.hpp"
@@ -13,18 +13,17 @@ namespace mpcd::cuda {
     /**
     *   @brief Initialize the GPU and the SRD fluid
     */
-    CudaBackend::CudaBackend(SimulationParameters const& parameters) :
-                                                                        particles(static_cast<size_t>(parameters.volume_size[0] * parameters.volume_size[1] * parameters.volume_size[2] * parameters.n)),
-                                                                        particles_sorted(10),
-                                                                        parameters(parameters),
-                                                                        mpc_cells({parameters.volume_size[0], parameters.volume_size[1], parameters.volume_size[2]}),
-                                                                        cell_states(static_cast<size_t>(parameters.volume_size[0] * parameters.volume_size[1] * parameters.volume_size[2])),
-                                                                        uniform_list(mpc_cells.size() * 4 * parameters.n),
-                                                                        uniform_counter(mpc_cells.size()),
-                                                                        step_counter(0),
-                                                                        resort_rate(100),
-                                                                        sample_counter(0),
-                                                                        sampling_state(SAMPLING_COMPLETED)
+    CudaBackend::CudaBackend(SimulationParameters const& params) : Backend(params),
+                                                                   particles(static_cast<size_t>(params.volume_size[0] * params.volume_size[1] * params.volume_size[2] * params.n)),
+                                                                   particles_sorted(10),
+                                                                   mpc_cells({params.volume_size[0], params.volume_size[1], params.volume_size[2]}),
+                                                                   cell_states(static_cast<size_t>(params.volume_size[0] * params.volume_size[1] * params.volume_size[2])),
+                                                                   uniform_list(mpc_cells.size() * 4 * params.n),
+                                                                   uniform_counter(mpc_cells.size()),
+                                                                   step_counter(0),
+                                                                   resort_rate(100),
+                                                                   sample_counter(0),
+                                                                   sampling_state(SAMPLING_COMPLETED)
     {
         cudaSetDevice(parameters.device_id);
 
@@ -130,7 +129,7 @@ namespace mpcd::cuda {
         ProbingType probe = what_to_do(step_counter, parameters);
 
         mpc_cells.set( 0 ); // clear cells.
-        sampling::addParticles<<<cuda_config.block_count, cuda_config.block_size>>>(parameters, mpc_cells, particles);
+        sampling::addParticles<<<cuda_config.block_count, cuda_config.block_size>>>(mpc_cells, particles);
         error_check( "add_particles_reduce_only" );
 
         sampling::averageCells<<< cuda_config.block_count, cuda_config.block_size>>>(mpc_cells);
@@ -286,10 +285,10 @@ namespace mpcd::cuda {
             step(1);
 
             mpc_cells.set( 0 ); // Clear cells
-            sampling::addParticles<<<cuda_config.block_count, cuda_config.block_size>>>(parameters, mpc_cells, particles);
+            sampling::addParticles<<<cuda_config.block_count, cuda_config.block_size>>>(mpc_cells, particles);
             error_check( "add particles reduce only" );
 
-            sampling::averageCells<<< cuda_config.block_count, cuda_config.block_size>>>( mpc_cells );
+            sampling::averageCells<<< cuda_config.block_count, cuda_config.block_size>>>(mpc_cells);
             error_check( "add particles reduce only" );
 
             if (i != n_steps-1) {

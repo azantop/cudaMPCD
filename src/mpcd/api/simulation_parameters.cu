@@ -10,7 +10,7 @@
 
 #include <cuda_runtime_api.h>
 
-#include <mpcd/common/simulation_parameters.hpp>
+#include <mpcd/api/simulation_parameters.hpp>
 
 namespace mpcd {
     SimulationParameters::SimulationParameters(std::string const& file_name, bool read_only)

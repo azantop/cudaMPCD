@@ -1,5 +1,5 @@
 #include <mpcd/api/simulation_handle.hpp>
-#include <mpcd/common/simulation_parameters.hpp>
+#include <mpcd/api/simulation_parameters.hpp>
 
 #include "backend/backend.hpp"
 #include "common/backend_factory.hpp"
@@ -12,6 +12,8 @@ namespace mpcd::api {
 
     SimulationHandle::SimulationHandle(SimulationHandle&&) noexcept = default;
     SimulationHandle& SimulationHandle::operator=(SimulationHandle&&) noexcept = default;
+
+    SimulationParameters const& SimulationHandle::getParameters() const { return backend_->getParameters(); }
 
     void SimulationHandle::step(int n_steps) {
         backend_->step(n_steps);

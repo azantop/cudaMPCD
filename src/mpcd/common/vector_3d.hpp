@@ -414,4 +414,5 @@ namespace math
 #if !defined(__CUDA_ARCH__) && !defined(__NVCC__)
     #undef __host__
     #undef __device__
+    #undef __forceinline__
 #endif

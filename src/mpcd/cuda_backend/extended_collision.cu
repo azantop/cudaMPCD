@@ -1,4 +1,4 @@
-#include <mpcd/common/simulation_parameters.hpp>
+#include <mpcd/api/simulation_parameters.hpp>
 
 #include "extended_collision.hpp"
 #include "mechanic.hpp"

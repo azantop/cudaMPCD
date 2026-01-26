@@ -1,6 +1,8 @@
 #pragma once
-
-    namespace mpcd::cuda {
+/*
+ *  Allocator for CUDA host memory used in std::vector and similar containers.
+ */
+namespace mpcd::cuda {
     void  cuda_set_device( size_t );
     void  cuda_device_reset();
 
@@ -34,15 +36,4 @@
     bool operator==( const cuda_host_allocator< T >&, const cuda_host_allocator< U >& ) { return true; }
     template< class T, class U >
     bool operator!=( const cuda_host_allocator< T >&, const cuda_host_allocator< U >& ) { return false; }
-
-    /*#else //////
-
-    #include <memory>
-
-    template< typename T >
-    using cuda_host_allocator = std::allocator< T >;
-    void  cuda_set_device( size_t ) {}
-
-    #endif // CUDA or not
-    */
 } // namespace mpcd::cuda

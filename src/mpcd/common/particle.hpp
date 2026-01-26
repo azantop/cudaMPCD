@@ -6,9 +6,9 @@ namespace mpcd::cuda {
         using Vector = math::Vector;
 
         uint16_t flags,
-                cidx;
+                 cidx;
         Vector   position,
-                velocity;
+                 velocity;
         uint32_t cell_idx;
 
         void writeBinary(std::ofstream &stream) const {

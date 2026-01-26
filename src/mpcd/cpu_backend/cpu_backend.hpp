@@ -5,34 +5,32 @@
 #include "backend/backend.hpp"
 #include "common/vector_3d.hpp"
 #include "common/particle.hpp"
-#include "mpc_cell.hpp"
-#include "gpu_arrays.hpp"
-#include "device_volume_container.hpp"
-#include "gpu_random.hpp"
+/*#include "mpc_cell.hpp"
+#include "gpu_random.hpp"*/
 
-namespace mpcd::cuda {
+namespace mpcd::cpu {
 
-    class CudaBackend : public Backend
+    class CPUBackend : public Backend
     {
         using Vector = math::Vector;
         using Float  = math::Float;
+        /*
+        std::vector<Particle>          particles;   // SRD fluid particles
 
-        UnifiedVector<Particle>          particles;   // SRD fluid particles
-        DeviceVector<Particle>           particles_sorted; // use for gpu sorting later
+        Vector                         grid_shift;  // SRD grid shift
 
-        Vector                           grid_shift;  // SRD grid shift
-
-        DeviceVolumeContainer<MPCCell>   mpc_cells;   // SRD cell storage
-        UnifiedVector<FluidState>        cell_states; // for averaging over the fluid state
+        //DeviceVolumeContainer<MPCCell>   mpc_cells;   // SRD cell storage
+        std::vector<FluidState>        cell_states; // for averaging over the fluid state
 
         // The indices for fluid particles are stored in a lookup table for the collision step.
         // This optimizes the data througput, because particles can be stored in shared memory
         // and only need to be loaded once:
-        DeviceVector<uint32_t>           uniform_list,    // the index lookup
-                                         uniform_counter; // next free table entry, used with atomicAdd.
+        std::vector<uint32_t>          uniform_list,    // the index lookup
+                                       uniform_counter; // next free table entry, used with atomicAdd.
 
-        DeviceVector<Xoshiro128Plus>     generator;  // random number generators for the gpu
-        xorshift1024star                 random;     // random number generatofor the cpu
+        //std::vector<Xoshiro128Plus>    generator;  // random number generators for the gpu
+        //xorshift1024star               random;     // random number generatofor the cpu
+        */
 
         // To furthe optimize memory loading, the particle array is sorted according to the SRD cell-index.
         // This enables array striding, ie. coalesced memory loading:
@@ -43,17 +41,8 @@ namespace mpcd::cuda {
             SAMPLING_COMPLETED
         };
         SamplingState sampling_state;
-        size_t sample_counter;
+        size_t        sample_counter;
 
-        struct {
-            size_t block_size,
-                block_count,
-                multiprocessors,
-                shared_bytes,
-                sharing_blocks,
-                internal_step_counter,
-                resort_rate;
-        } cuda_config;
 
         void translationStep();  // SRD streaming step
         void collisionStep();    // SRD collision step
@@ -61,7 +50,7 @@ namespace mpcd::cuda {
         public:
 
         // routines:
-        CudaBackend(SimulationParameters const&);  // initialization
+        CPUBackend(SimulationParameters const&);  // initialization
 
         // data io:
         void writeSample();

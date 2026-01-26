@@ -1,7 +1,7 @@
 #include <string>
 #include <iostream>
 
-#include <mpcd/common/simulation_parameters.hpp>
+#include <mpcd/api/simulation_parameters.hpp>
 
 #include "common/probing.hpp"
 #include "common/status_io.hpp"

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstddef>
-#include <mpcd/common/simulation_parameters.hpp>
+#include <mpcd/api/simulation_parameters.hpp>
 
 namespace mpcd {
     enum class ProbingType {

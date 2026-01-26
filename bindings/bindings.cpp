@@ -1,9 +1,10 @@
+#include <initializer_list>
 #include <vector>
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
 
-#include <mpcd/common/simulation_parameters.hpp>
+#include <mpcd/api/simulation_parameters.hpp>
 #include <mpcd/api/simulation_handle.hpp>
 
 namespace py = pybind11;
@@ -13,37 +14,44 @@ using mpcd::SimulationParameters;
 using mpcd::ExperimentType;
 using mpcd::MPCDAlgorithm;
 
-template<typename T>
-py::array_t<T> vector_to_numpy(std::vector<T>&& vec) {
+template<typename T, typename U>
+py::array_t<T> vector_to_numpy(std::vector<T>&& vec, std::initializer_list<U>&& shape ) {
     auto* heap_vec = new std::vector<T>(std::move(vec));
     py::capsule owner(heap_vec, [](void* p) { delete static_cast<std::vector<T>*>(p); });
-    return py::array_t<T>(heap_vec->size(), heap_vec->data(), owner);
+    return py::array_t<T>(shape, heap_vec->data(), owner);
 }
 
-PYBIND11_MODULE(simulator_bindings, m) {
-    m.doc() = "Python bindings for CUDA AsyncVector with numpy integration";
+PYBIND11_MODULE(pympcd, m) {
+    m.doc() = "Python bindings for Multi Particle Collision Dynamics (MPCD) Simulation.";
 
-    py::class_<SimulationHandle>(m, "SimulationHandle")
+    py::class_<SimulationHandle>(m, "Simulation", "Handle class for managing simulation state and interaction with backend")
     .def(py::init<SimulationParameters const&, std::string>())
-        .def("step", &SimulationHandle::step)
-        .def("stepAndAccumulateSample", &SimulationHandle::stepAndAccumulateSample)
-        .def("getSampleMean", [](SimulationHandle &self) {
+        .def("step", &SimulationHandle::step, "Perform n_steps simulation step.")
+        .def("step_and_sample", &SimulationHandle::stepAndAccumulateSample, "Perform n_steps simulation step and accumulate statistics.")
+        .def("get_mean_fields", [](SimulationHandle &self) {
             std::vector<float> density, velocity;
             self.getSampleMean(density, velocity);
-            return py::make_tuple(vector_to_numpy(std::move(density)), vector_to_numpy(std::move(velocity)));
-        })
-        .def("getParticlePositions", [](const SimulationHandle &self) {
+            auto const& parameters = self.getParameters();
+
+            // Reshape to 3D voxel arrays with column-major order:
+            size_t x = parameters.volume_size[0], y = parameters.volume_size[1], z = parameters.volume_size[2];
+            return py::make_tuple(vector_to_numpy(std::move(density), {x, y, z}),
+                                  vector_to_numpy(std::move(velocity), {x, y, z, 3ul}));
+        }, "Return the mean density and velocity fields (array of voxels) of the fluid after accumulating statistics.")
+        .def("get_particle_positions", [](const SimulationHandle &self) {
             std::vector<float> positions;
             self.getParticlePositions(positions);  // return by const ref or copy
-            return vector_to_numpy(std::move(positions));
-        })
-        .def("getParticleVelocities", [](const SimulationHandle &self) {
+            // Reshape to 2D array of vectors with column-major order:
+            return vector_to_numpy(std::move(positions), {positions.size(), 3ul});
+        }, "Returns the positions of the particles as array of vectors. Data is copied from internal vectors into NumPy arrays.")
+        .def("get_particle_velocities", [](const SimulationHandle &self) {
             std::vector<float> velocities;
             self.getParticleVelocities(velocities);  // return by const ref or copy
-            return vector_to_numpy(std::move(velocities));
-        });
+            // Reshape to 2D array of vectors with column-major order:
+            return vector_to_numpy(std::move(velocities), {velocities.size(), 3ul});
+        }, "Returns the velocities of the particles as array of vectors. Data is copied from internal vectors into NumPy arrays.");
 
-    py::class_<SimulationParameters>(m, "SimulationParameters")
+    py::class_<SimulationParameters>(m, "Params", "Class representing simulation parameters")
         .def(py::init<>())
         .def_readwrite("device_id", &SimulationParameters::device_id)
         .def_readwrite("delta_t", &SimulationParameters::delta_t)
