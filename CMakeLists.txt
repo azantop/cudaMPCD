@@ -6,6 +6,9 @@ project(async_vector_bindings LANGUAGES CXX CUDA)
 # Find required packages
 find_package(HDF5 REQUIRED COMPONENTS CXX)
 include_directories(include PUBLIC ${HDF5_INCLUDE_DIRS})
+set(CMAKE_SKIP_RPATH TRUE)
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
+
 # Find pybind11
 find_package(pybind11 QUIET)
 
@@ -15,7 +18,7 @@ find_package(pybind11 QUIET)
 #endif()
 
 # Compile CUDA files separately
-add_library(simulator SHARED
+add_library(simulator_backend SHARED
     src/mpcd/api/simulator_handle.cu
     src/mpcd/api/simulation_parameters.cu
     src/mpcd/cuda_backend/cuda_backend.cu
@@ -26,22 +29,18 @@ add_library(simulator SHARED
     src/mpcd/cpu_backend/cpu_backend.cpp
     src/mpcd/adapters/hdf5/h5cpp.cpp
 )
-target_include_directories(simulator
+target_include_directories(simulator_backend
     PRIVATE ${CMAKE_SOURCE_DIR}/src/mpcd
     PUBLIC ${CMAKE_SOURCE_DIR}/include
 )
-target_link_libraries(simulator
+target_link_libraries(simulator_backend
     PRIVATE HDF5::HDF5
 )
-
-add_library(cuda_objs SHARED
-    src/mpcd/cuda_backend/gpu_arrays.cu
-)
-target_include_directories(cuda_objs
-    PRIVATE ${CMAKE_SOURCE_DIR}/src/mpcd
-    PUBLIC ${CMAKE_SOURCE_DIR}/include
+install(TARGETS simulator_backend
+    LIBRARY DESTINATION "${PY_SITE_PACKAGES}/pympcd"
 )
 
+# Plain executable target
 add_executable(mpcd_main
     src/mpcd/main.cu
 )
@@ -50,30 +49,52 @@ target_include_directories(mpcd_main
     PUBLIC ${CMAKE_SOURCE_DIR}/include
 )
 target_link_libraries(mpcd_main
-    PRIVATE simulator
+    PRIVATE simulator_backend
 )
 
-pybind11_add_module(pympcd
+# Python module target
+pybind11_add_module(_pympcd
     bindings/bindings.cpp
-    $<TARGET_OBJECTS:simulator>
+    $<TARGET_OBJECTS:simulator_backend>
 )
 
 # Set CUDA properties
-set_property(TARGET pympcd PROPERTY CUDA_ARCHITECTURES 61 72)
-set_target_properties(pympcd PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-set_property(TARGET pympcd PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS ON)
+set_target_properties(_pympcd PROPERTIES CUDA_ARCHITECTURES "61;72")
+set_target_properties(_pympcd PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+set_target_properties(_pympcd PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
 
 # Set C++ standard
-target_compile_features(pympcd PUBLIC cxx_std_17)
+target_compile_features(_pympcd PUBLIC cxx_std_17)
 
 # Link libraries
-target_link_libraries(pympcd PUBLIC ${HDF5_LIBRARIES})
+target_link_libraries(_pympcd PUBLIC ${HDF5_LIBRARIES})
 
 # Compiler-specific options
-target_compile_definitions(pympcd PRIVATE VERSION_INFO="1.0.0")
+target_compile_definitions(_pympcd PRIVATE VERSION_INFO="1.0.0")
 
 # Set output directory
-set_target_properties(pympcd PROPERTIES
+set_target_properties(_pympcd PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
-install(TARGETS pympcd LIBRARY DESTINATION python/mpcd)
+
+find_package(Python 3 COMPONENTS Interpreter Development REQUIRED)
+
+# Compute site-packages path for the current Python
+execute_process(
+    COMMAND "${Python_EXECUTABLE}" -c
+        "import sysconfig; print(sysconfig.get_path('purelib'))"
+    OUTPUT_VARIABLE PY_SITE_PACKAGES
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+message(STATUS "Python site-packages: ${PY_SITE_PACKAGES}")
+
+# Install target
+install(TARGETS _pympcd
+    LIBRARY DESTINATION "${PY_SITE_PACKAGES}/pympcd"
+)
+# Install Python files
+install(DIRECTORY src/mpcd/
+    DESTINATION "${PY_SITE_PACKAGES}/pympcd"
+    FILES_MATCHING PATTERN "*.py"
+)

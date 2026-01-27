@@ -5,7 +5,7 @@
 #include <cuda_profiler_api.h>
 
 #include "common/vector_3d.hpp"
-#include "mechanic.hpp"
+#include "common/mechanic.hpp"
 
 namespace mpcd::cuda {
 

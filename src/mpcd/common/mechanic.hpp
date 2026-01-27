@@ -2,7 +2,13 @@
 
 #include "common/vector_3d.hpp"
 
-namespace mpcd::cuda {
+#if !defined(__CUDA_ARCH__) && !defined(__NVCC__)
+    #define __host__
+    #define __device__
+    #define __forceinline__
+#endif
+
+namespace mpcd {
     template<typename T>
     struct symmetric_matrix
     {
@@ -157,3 +163,9 @@ namespace mpcd::cuda {
         __device__ traegheitsmoment& operator=  ( T p ) { xx = p; yy = p; zz = p; xy = p; xz = p; yz = p; return *this; }
     };
 } // namespace mpcd::cuda
+
+#if !defined(__CUDA_ARCH__) && !defined(__NVCC__)
+    #undef __host__
+    #undef __device__
+    #undef __forceinline__
+#endif

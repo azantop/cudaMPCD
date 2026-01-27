@@ -1,7 +1,7 @@
 #include <mpcd/api/simulation_parameters.hpp>
 
 #include "simulation_kernels.hpp"
-#include "mechanic.hpp"
+#include "common/mechanic.hpp"
 
 namespace mpcd::cuda {
     namespace initialize {

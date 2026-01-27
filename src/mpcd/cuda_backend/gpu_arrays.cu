@@ -1,8 +1,9 @@
 #include "common/vector_3d.hpp"
 #include "common/particle.hpp"
+#include "common/mpc_cell.hpp"
+
 #include "gpu_arrays.hpp"
 #include "gpu_error_check.hpp"
-#include "mpc_cell.hpp"
 #include "gpu_random.hpp"
 
 namespace mpcd::cuda {

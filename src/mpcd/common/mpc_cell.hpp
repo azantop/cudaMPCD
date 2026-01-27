@@ -2,21 +2,24 @@
 
 #include "common/particle.hpp"
 #include "common/vector_3d.hpp"
-#include "gpu_utilities.hpp"
 
-namespace mpcd::cuda {
+#if defined(__CUDACC__) || defined(__NVCC__) // hide device functions from gcc
+    #include "cuda_backend/gpu_utilities.hpp"
+#endif
+
+namespace mpcd {
     /**
     *  @brief Object for data and functions related to the MPC algorithm. Additionally, the
     *         class holds pointers to obstacles.
     */
     struct MPCCell
     {
-        using Vector    = math::Vector;
-        using Float = math::Float;
+        using Vector = math::Vector;
+        using Float  = math::Float;
 
         unsigned density;
         Vector   mean_velocity,
-                centre_of_mass;
+                 centre_of_mass;
 
     #if defined(__CUDACC__) || defined(__NVCC__) // hide device functions from gcc
 
@@ -75,13 +78,13 @@ namespace mpcd::cuda {
 
         __device__ void group_reduce(unsigned group_size) {
             if (group_size > 1) {
-                density          = gpu_utilities::group_sum( density,         -1u, group_size );
-                mean_velocity.x  = gpu_utilities::group_sum( mean_velocity.x,  -1u, group_size );
-                mean_velocity.y  = gpu_utilities::group_sum( mean_velocity.y,  -1u, group_size );
-                mean_velocity.z  = gpu_utilities::group_sum( mean_velocity.z,  -1u, group_size );
-                centre_of_mass.x = gpu_utilities::group_sum( centre_of_mass.x, -1u, group_size );
-                centre_of_mass.y = gpu_utilities::group_sum( centre_of_mass.y, -1u, group_size );
-                centre_of_mass.z = gpu_utilities::group_sum( centre_of_mass.z, -1u, group_size );
+                density          = cuda::gpu_utilities::group_sum( density,         -1u, group_size );
+                mean_velocity.x  = cuda::gpu_utilities::group_sum( mean_velocity.x,  -1u, group_size );
+                mean_velocity.y  = cuda::gpu_utilities::group_sum( mean_velocity.y,  -1u, group_size );
+                mean_velocity.z  = cuda::gpu_utilities::group_sum( mean_velocity.z,  -1u, group_size );
+                centre_of_mass.x = cuda::gpu_utilities::group_sum( centre_of_mass.x, -1u, group_size );
+                centre_of_mass.y = cuda::gpu_utilities::group_sum( centre_of_mass.y, -1u, group_size );
+                centre_of_mass.z = cuda::gpu_utilities::group_sum( centre_of_mass.z, -1u, group_size );
             }
         }
 

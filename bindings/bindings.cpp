@@ -14,6 +14,10 @@ using mpcd::SimulationParameters;
 using mpcd::ExperimentType;
 using mpcd::MPCDAlgorithm;
 
+/*
+ * Helper function to convert a vector to a NumPy array.
+ * Assumes column-major order.
+ */
 template<typename T, typename U>
 py::array_t<T> vector_to_numpy(std::vector<T>&& vec, std::initializer_list<U>&& shape ) {
     auto* heap_vec = new std::vector<T>(std::move(vec));
@@ -21,7 +25,7 @@ py::array_t<T> vector_to_numpy(std::vector<T>&& vec, std::initializer_list<U>&& 
     return py::array_t<T>(shape, heap_vec->data(), owner);
 }
 
-PYBIND11_MODULE(pympcd, m) {
+PYBIND11_MODULE(_pympcd, m) {
     m.doc() = "Python bindings for Multi Particle Collision Dynamics (MPCD) Simulation.";
 
     py::class_<SimulationHandle>(m, "Simulation", "Handle class for managing simulation state and interaction with backend")

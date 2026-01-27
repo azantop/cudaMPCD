@@ -2,10 +2,10 @@
 
 #include "common/particle.hpp"
 #include "common/vector_3d.hpp"
+#include "common/mpc_cell.hpp"
 
 #include "gpu_arrays.hpp"
 #include "device_volume_container.hpp"
-#include "mpc_cell.hpp"
 #include "gpu_random.hpp"
 
 namespace mpcd::cuda {

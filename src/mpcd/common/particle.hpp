@@ -1,7 +1,7 @@
 #pragma once
 #include "common/vector_3d.hpp"
 
-namespace mpcd::cuda {
+namespace mpcd {
     struct alignas(16) Particle {
         using Vector = math::Vector;
 
