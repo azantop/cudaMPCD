@@ -1,0 +1,27 @@
+[build-system]
+requires = ["scikit-build-core>=0.11", "pybind11>=3.0"]
+build-backend = "scikit_build_core.build"
+cmake_args=["-G", "Unix Makefiles"]
+
+[project]
+name = "pympcd"
+version = "1.0.0"
+license = "MIT"
+license-files = ["LICENSE"]
+description="A package for Multi Particle Collsion Dynamics (MPCD) Simulations."
+readme = "README.md"
+authors = [
+  { name = "My Name", email = "me@email.com" },
+]
+requires-python = ">=3.9"
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Private :: Do Not Upload",
+]

@@ -1,16 +1,18 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.22)
 cmake_policy(SET CMP0074 NEW)
 
-project(async_vector_bindings LANGUAGES CXX CUDA)
+project(
+  ${SKBUILD_PROJECT_NAME}
+  VERSION ${SKBUILD_PROJECT_VERSION}
+  LANGUAGES CXX CUDA
+)
 
 # Find required packages
 find_package(HDF5 REQUIRED COMPONENTS CXX)
 include_directories(include PUBLIC ${HDF5_INCLUDE_DIRS})
-set(CMAKE_SKIP_RPATH TRUE)
-set(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
 
 # Find pybind11
-find_package(pybind11 QUIET)
+find_package(pybind11 REQUIRED)
 
 # Set CUDA environment if defined
 #if(DEFINED ENV{CUDA})
@@ -35,9 +37,6 @@ target_include_directories(simulator_backend
 )
 target_link_libraries(simulator_backend
     PRIVATE HDF5::HDF5
-)
-install(TARGETS simulator_backend
-    LIBRARY DESTINATION "${PY_SITE_PACKAGES}/pympcd"
 )
 
 # Plain executable target
@@ -70,31 +69,21 @@ target_compile_features(_pympcd PUBLIC cxx_std_17)
 target_link_libraries(_pympcd PUBLIC ${HDF5_LIBRARIES})
 
 # Compiler-specific options
-target_compile_definitions(_pympcd PRIVATE VERSION_INFO="1.0.0")
+target_compile_definitions(_pympcd PRIVATE VERSION_INFO=${PROJECT_VERSION})
 
 # Set output directory
 set_target_properties(_pympcd PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-find_package(Python 3 COMPONENTS Interpreter Development REQUIRED)
+# This is passing in the version as a define just as an example
 
-# Compute site-packages path for the current Python
-execute_process(
-    COMMAND "${Python_EXECUTABLE}" -c
-        "import sysconfig; print(sysconfig.get_path('purelib'))"
-    OUTPUT_VARIABLE PY_SITE_PACKAGES
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-)
+# The install directory is the output (wheel) directory
+install(TARGETS simulator_backend DESTINATION pympcd)
+install(TARGETS _pympcd DESTINATION pympcd)
 
-message(STATUS "Python site-packages: ${PY_SITE_PACKAGES}")
-
-# Install target
-install(TARGETS _pympcd
-    LIBRARY DESTINATION "${PY_SITE_PACKAGES}/pympcd"
-)
 # Install Python files
 install(DIRECTORY src/mpcd/
-    DESTINATION "${PY_SITE_PACKAGES}/pympcd"
+    DESTINATION pympcd
     FILES_MATCHING PATTERN "*.py"
 )

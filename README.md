@@ -8,6 +8,7 @@ In the current state, this code can be used to simulate a Poiseuille flow, i.e. 
 ### Prerequisites
 
 - CMake (version 3.12 or higher)
+- Ninja
 - CUDA-capable GPU and NVIDIA CUDA Toolkit
 - C++ compiler with C++14 support or higher
 - Python 3.6+ with development headers
@@ -21,7 +22,12 @@ git clone <repository-url>
 cd cudaMPCD
 ```
 
-2. Create a build directory and run Cmake:
+2. use pip to install the package:
+```bash
+pip install .
+```
+
+3. For running simulations with standalone binary use Cmake:
 ```bash
 mkdir build
 cd build
