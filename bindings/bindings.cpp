@@ -59,6 +59,7 @@ PYBIND11_MODULE(_pympcd, m) {
         .def(py::init<>())
         .def_readwrite("device_id", &SimulationParameters::device_id)
         .def_readwrite("delta_t", &SimulationParameters::delta_t)
+        .def_readwrite("N", &SimulationParameters::N)
         .def_readwrite("drag", &SimulationParameters::drag)
         .def_readwrite("equilibration_steps", &SimulationParameters::equilibration_steps)
         .def_readwrite("steps", &SimulationParameters::steps)
@@ -76,9 +77,9 @@ PYBIND11_MODULE(_pympcd, m) {
                     [](SimulationParameters &p, py::tuple t) {
                         if (t.size() != 3)
                             throw std::runtime_error("Expected 3 elements");
-                        p.volume_size[0] = t[0].cast<int>();
-                        p.volume_size[1] = t[1].cast<int>();
-                        p.volume_size[2] = t[2].cast<int>();
+                        p.volume_size[0] = t[0].cast<float>();
+                        p.volume_size[1] = t[1].cast<float>();
+                        p.volume_size[2] = t[2].cast<float>();
                         p.N = p.n * p.volume_size[0] * p.volume_size[1] * p.volume_size[2];
                     }
                 )
@@ -94,9 +95,9 @@ PYBIND11_MODULE(_pympcd, m) {
                     [](SimulationParameters &p, py::tuple t) {
                         if (t.size() != 3)
                             throw std::runtime_error("Expected 3 elements");
-                        p.periodicity[0] = t[0].cast<bool>();
-                        p.periodicity[1] = t[1].cast<bool>();
-                        p.periodicity[2] = t[2].cast<bool>();
+                        p.periodicity[0] = t[0].cast<int>();
+                        p.periodicity[1] = t[1].cast<int>();
+                        p.periodicity[2] = t[2].cast<int>();
                     }
                 )
         .def_property("experiment",
