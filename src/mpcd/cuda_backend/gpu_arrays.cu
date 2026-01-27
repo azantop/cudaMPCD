@@ -16,30 +16,36 @@ namespace mpcd::cuda {
 
     template<class T>
     UnifiedVector<T>::UnifiedVector(UnifiedVector::size_type c) : count(c){
-        cudaMallocHost( (void**) &host_store,   count * sizeof( T ) ); error_check( "alloc UnifiedVector host" );
-        cudaMalloc    ( (void**) &device_store, count * sizeof( T ) ); error_check( "alloc UnifiedVector device" );
+        cudaMallocHost((void**) &host_store, count * sizeof(T));
+        error_check((std::string("Host alloc UnifiedVector<") + typeid(T).name() + "> " + std::to_string(count) + " elements").c_str());
+
+        cudaMalloc((void**) &device_store, count * sizeof(T));
+        error_check((std::string("Device alloc UnifiedVector<") + typeid(T).name() + "> " + std::to_string(count) + " elements").c_str());
     }
 
     template<class T>
     UnifiedVector<T>::~UnifiedVector() {
         if (count != 0) {
             cudaFree(device_store);
-            error_check((std::string( "delete/free async_vector device type: " ) + typeid( T ).name()).c_str());
+            error_check((std::string("Device free UnifiedVector<") + typeid(T).name() + ">").c_str());
+
             cudaFreeHost( host_store );
-            error_check((std::string("delete/free async_vector host type: " ) + typeid( T ).name()).c_str());
+            error_check((std::string("Host free UnifiedVector<") + typeid(T).name() + ">").c_str());
+
         }
     }
 
     template<class T>
     void UnifiedVector<T>::push() {
         cudaMemcpy( device_store, host_store, count * sizeof( T ), cudaMemcpyHostToDevice );
-        error_check( "async_vector::push" );
+        error_check((std::string("UnifiedVector<") + typeid(T).name() + ">::push").c_str());
+
     }
 
     template<class T>
     void UnifiedVector<T>::pull() {
         cudaMemcpy( host_store, device_store, count * sizeof( T ), cudaMemcpyDeviceToHost );
-        error_check( "async_vector::pull" );
+        error_check((std::string("UnifiedVector<") + typeid(T).name() + ">::pull").c_str());
     }
 
     template<class T>
@@ -48,7 +54,10 @@ namespace mpcd::cuda {
 
     template<class T>
     void UnifiedVector<T>::set( int i )
-    { error_check( cudaMemset( device_store, i, sizeof( T ) * count ), "gpu_vector set" ); }
+    {
+        cudaMemset(device_store, i, sizeof(T) * count);
+        error_check((std::string("UnifiedVector<") + typeid(T).name() + ">::set").c_str());
+    }
 
     namespace hidden {
         template<typename T>
@@ -124,7 +133,7 @@ namespace mpcd::cuda {
         #ifndef __CUDA_ARCH__
             if ( !copy and count != 0 ) {
                 cudaFree(store);
-                error_check((std::string("delete/free GpuVector type: ") + typeid(T).name() ).c_str());
+                error_check((std::string("delete/free GpuVector type: ") + typeid(T).name()).c_str());
             }
         #endif
     }

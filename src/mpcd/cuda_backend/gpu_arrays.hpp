@@ -126,7 +126,9 @@ namespace mpcd::cuda {
                     cudaFree( store );
 
                 count = c;
-                error_check( cudaMalloc( (void**) &store, count * sizeof( T ) ), "alloc DeviceVector" );
+                cudaMalloc( (void**) &store, count * sizeof( T ) );
+                error_check((std::string("Device alloc DeviceVector<") + typeid(T).name() + "> " + std::to_string(count) + " elements").c_str());
+
             }
 
             // capacity:
