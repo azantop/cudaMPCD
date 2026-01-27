@@ -12,7 +12,20 @@ namespace mpcd::cpu {
         // TODO
     }
 
-    CPUBackend::CPUBackend(SimulationParameters const& params) : Backend(params) {}
+    CPUBackend::CPUBackend(SimulationParameters const& params) : Backend(params),
+                                                                 particles(params.N)
+    {
+        math::Vector scale = {params.volume_size[0], params.volume_size[1], params.volume_size[2]};
+        math::IntVector perio = {params.periodicity[0], params.periodicity[1], params.periodicity[2]};
+        scale = scale + 2 * (1 - perio);
+
+        // Initialize particles
+        for (size_t i = 0; i < particles.size(); ++i) {
+            particles[i].position = {random.uniform_float(), random.uniform_float(), random.uniform_float()}; // uniform on the unit cube.
+            particles[i].position = (particles[i].position - math::Float(0.5)).scaledWith(scale);  // rescale to the simulation volume
+            particles[i].velocity = random.maxwell_boltzmann() * params.thermal_velocity;
+        }
+    }
 
     void CPUBackend::writeSample() {
         // TODO
@@ -41,11 +54,21 @@ namespace mpcd::cpu {
     }
 
     void CPUBackend::getParticlePositions(std::vector<float>& positions) {
-        // TODO
+        positions.resize(particles.size() * 3);
+        for (size_t i = 0; i < particles.size(); ++i) {
+            positions[3*i + 0] = particles[i].position.x;
+            positions[3*i + 1] = particles[i].position.y;
+            positions[3*i + 2] = particles[i].position.z;
+        }
     }
 
     void CPUBackend::getParticleVelocities(std::vector<float>& velocities) {
-        // TODO
+        velocities.resize(particles.size() * 3);
+        for (size_t i = 0; i < particles.size(); ++i) {
+            velocities[3*i + 0] = particles[i].velocity.x;
+            velocities[3*i + 1] = particles[i].velocity.y;
+            velocities[3*i + 2] = particles[i].velocity.z;
+        }
     }
 
     void CPUBackend::setParticlePositions(std::vector<float> const& positions) {

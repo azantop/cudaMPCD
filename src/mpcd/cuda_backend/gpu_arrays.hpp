@@ -117,7 +117,7 @@ namespace mpcd::cuda {
             __host__ __device__ DeviceVector( DeviceVector const& rhs ) : store( rhs.store ), count( rhs.count ), copy( 1 ) { }
             __host__ __device__ ~DeviceVector();
 
-            __host__ void alloc( size_type c )
+            __host__ void alloc(size_type c)
             {
                 if (!hasCudaDevice())
                     throw std::runtime_error("No CUDA device found");
@@ -126,8 +126,8 @@ namespace mpcd::cuda {
                     cudaFree( store );
 
                 count = c;
-                cudaMalloc( (void**) &store, count * sizeof( T ) );
-                error_check((std::string("Device alloc DeviceVector<") + typeid(T).name() + "> " + std::to_string(count) + " elements").c_str());
+                cudaMalloc((void**) &store, count * sizeof(T));
+                error_check((std::string("Alloc DeviceVector<") + typeid(T).name() + ">:" + std::to_string(count) + " elements").c_str());
 
             }
 

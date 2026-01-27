@@ -162,7 +162,7 @@ namespace mpcd {
         }
         __device__ traegheitsmoment& operator=  ( T p ) { xx = p; yy = p; zz = p; xy = p; xz = p; yz = p; return *this; }
     };
-} // namespace mpcd::cuda
+} // namespace mpcd
 
 #if !defined(__CUDA_ARCH__) && !defined(__NVCC__)
     #undef __host__

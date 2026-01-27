@@ -80,10 +80,6 @@ PYBIND11_MODULE(_pympcd, m) {
                         p.volume_size[0] = t[0].cast<float>();
                         p.volume_size[1] = t[1].cast<float>();
                         p.volume_size[2] = t[2].cast<float>();
-                        for (int i = 0; i < 3; ++i) {
-                            if (p.periodicity[i] != 0)
-                                p.volume_size[i] += 2; // add wall layer
-                        }
                         p.N = p.n * p.volume_size[0] * p.volume_size[1] * p.volume_size[2];
                     }
                 )
@@ -103,7 +99,7 @@ PYBIND11_MODULE(_pympcd, m) {
                         p.periodicity[1] = t[1].cast<int>();
                         p.periodicity[2] = t[2].cast<int>();
                         for (int i = 0; i < 3; ++i) {
-                            if (p.periodicity[i] != 0)
+                            if (p.periodicity[i] == 0)
                                 p.volume_size[i] += 2; // add wall layer
                         }
                         p.N = p.n * p.volume_size[0] * p.volume_size[1] * p.volume_size[2];

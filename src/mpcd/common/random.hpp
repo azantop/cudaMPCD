@@ -5,12 +5,18 @@
 #include <fstream>
 #include <iostream>
 
-#include <cuda_runtime_api.h>
-#include <cuda.h>
-
 #include "common/vector_3d.hpp"
 
-namespace mpcd::cuda {
+#if defined(__CUDA_ARCH__) || defined(__NVCC__)
+    #include <cuda_runtime_api.h>
+    #include <cuda.h>
+#else
+    #define __host__
+    #define __device__
+    #define __forceinline__
+#endif
+
+namespace mpcd {
     /**
     *  @brief Xoshiro128Plus is a really fast random number generator with a 128 bit internal state.
     *         see https://prng.di.unimi.it/ and https://doi.org/10.1145/3460772 for details.
@@ -149,12 +155,20 @@ namespace mpcd::cuda {
             if ( !generate_f )
             return z1_f;
 
-            float u1 = __logf( uniform_float() + FLT_MIN ),
-                u2 = ( static_cast< float >( operator()() )
+            #if ( defined __CUDACC__ ) or ( defined __NVCC__ ) // hide device functions from gcc
+                float u1 = __logf( uniform_float() + FLT_MIN );
+            #else
+                float u1 = logf( uniform_float() + FLT_MIN );
+            #endif
+            float u2 = ( static_cast< float >( operator()() )
                     * ( 2.0f *  static_cast< float >( M_PI )
                         / static_cast< float >( UINT32_MAX ) ) );
 
-            __sincosf(  u2, &z1_f, &u2 );
+            #if ( defined __CUDACC__ ) or ( defined __NVCC__ ) // hide device functions from gcc
+                __sincosf(u2, &z1_f, &u2);
+            #else
+                sincosf(u2, &z1_f, &u2);
+            #endif
 
                 z1_f *= sqrtf( -2 * u1 );
             return u2 * sqrtf( -2 * u1 );
@@ -353,4 +367,10 @@ namespace mpcd::cuda {
             return ( static_cast< unsigned int >( operator()() / 2 ) % ( max - min + 1 ) + min );
         }
     };
-} // namespace mpcd::cuda
+} // namespace mpcd
+
+#if !defined(__CUDA_ARCH__) && !defined(__NVCC__)
+    #undef __host__
+    #undef __device__
+    #undef __forceinline__
+#endif

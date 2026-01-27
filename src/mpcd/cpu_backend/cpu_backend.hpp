@@ -5,8 +5,8 @@
 #include "backend/backend.hpp"
 #include "common/vector_3d.hpp"
 #include "common/particle.hpp"
-/*#include "mpc_cell.hpp"
-#include "gpu_random.hpp"*/
+#include "common/mpc_cell.hpp"
+#include "common/random.hpp"
 
 namespace mpcd::cpu {
 
@@ -14,7 +14,7 @@ namespace mpcd::cpu {
     {
         using Vector = math::Vector;
         using Float  = math::Float;
-        /*
+
         std::vector<Particle>          particles;   // SRD fluid particles
 
         Vector                         grid_shift;  // SRD grid shift
@@ -29,8 +29,8 @@ namespace mpcd::cpu {
                                        uniform_counter; // next free table entry, used with atomicAdd.
 
         //std::vector<Xoshiro128Plus>    generator;  // random number generators for the gpu
-        //xorshift1024star               random;     // random number generatofor the cpu
-        */
+        Xoshiro128Plus               random;     // random number generatofor the cpu
+
 
         // To furthe optimize memory loading, the particle array is sorted according to the SRD cell-index.
         // This enables array striding, ie. coalesced memory loading:

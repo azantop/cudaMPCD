@@ -13,7 +13,7 @@ namespace mpcd::cuda {
                 stride = blockDim.x * gridDim.x;
 
             for (; idx < generator.size(); idx += stride)
-                generator[idx].seed( seed[idx], seed[idx + generator.size()]);
+                generator[idx].seed(seed[idx], seed[idx + generator.size()]);
         }
 
         /**

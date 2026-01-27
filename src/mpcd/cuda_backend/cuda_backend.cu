@@ -78,29 +78,15 @@ namespace mpcd::cuda {
         // seed the parallel random number generators
         generator.alloc( cuda_config.block_size * cuda_config.sharing_blocks );
         {
-            UnifiedVector<uint64_t> seed( 2 * generator.size() );
+            UnifiedVector<uint64_t> seed(2 * generator.size());
 
-            for ( auto& item : seed )
+            for (auto& item : seed)
                 item = std::hash<uint64_t>()( random() );
 
             seed.push();
             initialize::seedRandomNumberGenerators<<<cuda_config.block_count, cuda_config.block_size>>>(generator, seed);
             error_check("initialise_generators");
         }
-
-        // load members into GPU's constant memory:
-        /*cudaMemcpyToSymbol(gpu_const::parameters, &(parameters), sizeof(SimulationParameters));
-        error_check("symbol parameters");
-        cudaMemcpyToSymbol(gpu_const::particles, &(particles), sizeof(decltype(particles)));
-        error_check("symbol particles");
-        cudaMemcpyToSymbol(gpu_const::generator, &(generator), sizeof(decltype(generator)));
-        error_check("symbol generator");
-        cudaMemcpyToSymbol(gpu_const::mpc_cells, &mpc_cells, sizeof(decltype(mpc_cells)));
-        error_check("symbol mpc_cells");
-        cudaMemcpyToSymbol(gpu_const::uniform_list, &uniform_list, sizeof(decltype(uniform_list)));
-        error_check("symbol uniform_list");
-        cudaMemcpyToSymbol(gpu_const::uniform_counter, &uniform_counter, sizeof(decltype(uniform_counter)));
-        error_check("symbol uniform_counter");*/
 
         // initialize SRD fluid particles
         grid_shift = {random.uniform_float() - math::Float(0.5),
@@ -288,7 +274,7 @@ namespace mpcd::cuda {
             sampling::addParticles<<<cuda_config.block_count, cuda_config.block_size>>>(mpc_cells, particles);
             error_check( "add particles reduce only" );
 
-            sampling::averageCells<<< cuda_config.block_count, cuda_config.block_size>>>(mpc_cells);
+            sampling::averageCells<<<cuda_config.block_count, cuda_config.block_size>>>(mpc_cells);
             error_check( "add particles reduce only" );
 
             if (i != n_steps-1) {

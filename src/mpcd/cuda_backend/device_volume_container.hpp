@@ -17,7 +17,7 @@ namespace mpcd::cuda {
     struct DeviceVolumeContainer
     {
         using Vector                 =       math::Vector;
-        using Float              =       math::Float;
+        using Float                  =       math::Float;
         using value_type             =       T;
         using reference              =       T&;
         using const_reference        = const T&;
@@ -30,14 +30,14 @@ namespace mpcd::cuda {
 
         private:
 
-        Vector            edges,
+        Vector          edges,
                         inverse_edges,
                         shift;
-        uint32_t          x_size,
+        uint32_t        x_size,
                         y_size,
                         z_size,
                         xy_size;
-        DeviceVector<T>   store;
+        DeviceVector<T> store;
 
 
         public:

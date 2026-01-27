@@ -1,10 +1,10 @@
 #include "common/vector_3d.hpp"
 #include "common/particle.hpp"
 #include "common/mpc_cell.hpp"
+#include "common/random.hpp"
 
 #include "gpu_arrays.hpp"
 #include "gpu_error_check.hpp"
-#include "gpu_random.hpp"
 
 namespace mpcd::cuda {
     // AsyncVector method definitions
@@ -17,10 +17,10 @@ namespace mpcd::cuda {
     template<class T>
     UnifiedVector<T>::UnifiedVector(UnifiedVector::size_type c) : count(c){
         cudaMallocHost((void**) &host_store, count * sizeof(T));
-        error_check((std::string("Host alloc UnifiedVector<") + typeid(T).name() + "> " + std::to_string(count) + " elements").c_str());
+        error_check((std::string("Host alloc UnifiedVector<") + typeid(T).name() + ">: " + std::to_string(count) + " elements").c_str());
 
         cudaMalloc((void**) &device_store, count * sizeof(T));
-        error_check((std::string("Device alloc UnifiedVector<") + typeid(T).name() + "> " + std::to_string(count) + " elements").c_str());
+        error_check((std::string("Device alloc UnifiedVector<") + typeid(T).name() + ">: " + std::to_string(count) + " elements").c_str());
     }
 
     template<class T>
