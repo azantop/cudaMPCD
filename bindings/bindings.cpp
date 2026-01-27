@@ -59,6 +59,7 @@ PYBIND11_MODULE(_pympcd, m) {
         .def(py::init<>())
         .def_readwrite("device_id", &SimulationParameters::device_id)
         .def_readwrite("delta_t", &SimulationParameters::delta_t)
+        .def_readwrite("drag", &SimulationParameters::drag)
         .def_readwrite("equilibration_steps", &SimulationParameters::equilibration_steps)
         .def_readwrite("steps", &SimulationParameters::steps)
         .def_readwrite("sample_rate", &SimulationParameters::sample_every)

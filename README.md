@@ -3,6 +3,61 @@ Fast hydrodynamic solver for GPUS using the method of multi-particle collision d
 For configuring the simulation after compilation using the make command, modify the input_file.     
 In the current state, this code can be used to simulate a Poiseuille flow, i.e. a flow between to parallel plates.
 
+## Installation
+
+### Prerequisites
+
+- CMake (version 3.12 or higher)
+- CUDA-capable GPU and NVIDIA CUDA Toolkit
+- C++ compiler with C++14 support or higher
+- Python 3.6+ with development headers
+- NumPy
+
+### Building and Installing
+
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd cudaMPCD
+```
+
+2. Create a build directory and run Cmake:
+```bash
+mkdir build
+cd build
+cmake ..
+cmake --build .
+cmake --install .
+```
+
+## Usage
+
+After installation, you can import and use the module in Python:
+
+```python
+import pympcd
+
+# Create simulation parameters
+params = pympcd.Params()
+params.n = 10
+params.temperature = 1.0
+params.volume_size = (100, 100, 10)
+params.periodicity = (1, 1, 0)
+params.drag = 0.001
+params.delta_t = 0.02
+params.experiment = "channel"
+params.algorithm = "extended"
+
+# Create and run simulation
+sim = pympcd.Simulation(params, "output_directory")
+sim.step(100)
+sim.step_and_sample(10000)
+
+# Get results
+density, velocity = sim.get_mean_fields()
+```
+
+## Testing
 The Poiseuille flow is a geometry for which the Navier-Stokes equations can be solved analytically. 
 Thus, we can use this geometry for testing the code.
 After the simulation, we may use the flow field data as follows (in Julia code):
@@ -54,5 +109,3 @@ If you find this repository helpful, please consider citing our article (doi.org
 Dependencies: CUDA, HDF5
 
 TODO: add references (papers)
-
-
