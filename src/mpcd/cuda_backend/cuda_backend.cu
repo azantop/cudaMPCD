@@ -13,7 +13,7 @@ namespace mpcd::cuda {
     /**
     *   @brief Initialize the GPU and the SRD fluid
     */
-    CudaBackend::CudaBackend(SimulationParameters const& params) : Backend(params),
+    CudaBackend::CudaBackend(SimulationParameters const& params) : Backend([&]{ cudaSetDevice(params.device_id); return params; }()),
                                                                    particles(static_cast<size_t>(params.volume_size[0] * params.volume_size[1] * params.volume_size[2] * params.n)),
                                                                    particles_sorted(10),
                                                                    mpc_cells({params.volume_size[0], params.volume_size[1], params.volume_size[2]}),
@@ -25,10 +25,6 @@ namespace mpcd::cuda {
                                                                    sample_counter(0),
                                                                    sampling_state(SAMPLING_COMPLETED)
     {
-        cudaDeviceReset();
-        cudaSetDevice(parameters.device_id);
-        error_check("cudaSetDevice");
-
         // query device properties to decide kernel launch layouts
         cudaDeviceProp properties;
         cudaGetDeviceProperties(&properties, parameters.device_id);
@@ -78,12 +74,12 @@ namespace mpcd::cuda {
         }
 
         // seed the parallel random number generators
-        generator.alloc( cuda_config.block_size * cuda_config.sharing_blocks );
+        generator.alloc(cuda_config.block_size * cuda_config.sharing_blocks);
         {
             UnifiedVector<uint64_t> seed(2 * generator.size());
 
             for (auto& item : seed)
-                item = std::hash<uint64_t>()( random() );
+                item = std::hash<uint64_t>()(random());
 
             seed.push();
             initialize::seedRandomNumberGenerators<<<cuda_config.block_count, cuda_config.block_size>>>(generator, seed);
@@ -99,9 +95,9 @@ namespace mpcd::cuda {
                                         {parameters.volume_size[0], parameters.volume_size[1], parameters.volume_size[2]},
                                         {parameters.periodicity[0], parameters.periodicity[1], parameters.periodicity[2]},
                                         parameters.thermal_velocity, parameters.experiment, 0);
-        error_check( "distribute_particles" );
 
         cudaDeviceSynchronize();
+        error_check( "distribute_particles" );
         std::cout << "gpu initialized ..." << std::endl;
 
         // create output file
@@ -110,7 +106,7 @@ namespace mpcd::cuda {
     }
 
     CudaBackend::~CudaBackend() {
-        cudaDeviceReset();  // This might help with cleanup
+        cudaDeviceSynchronize();
     }
     /**
     *   @brief Data io, either creating snapshots or averaging and writing to disk.
@@ -272,7 +268,7 @@ namespace mpcd::cuda {
     }
 
     void CudaBackend::stepAndAccumulateSample(int n_steps) {
-        for (int i = 0; i < n_steps-1; i++) {
+        for (int i = 0; i < n_steps; i++) {
             step(1);
 
             mpc_cells.set( 0 ); // Clear cells
@@ -304,8 +300,8 @@ namespace mpcd::cuda {
         mean_velocity.resize(cell_states.size() * 3);
         for (size_t i = 0; i < cell_states.size(); i++) {
             mean_density[i] = cell_states[i].density;
-            mean_velocity[i * 3 + 0] = cell_states[i].mean_velocity.y;
-            mean_velocity[i * 3 + 1] = cell_states[i].mean_velocity.z;
+            mean_velocity[i * 3 + 0] = cell_states[i].mean_velocity.x;
+            mean_velocity[i * 3 + 1] = cell_states[i].mean_velocity.y;
             mean_velocity[i * 3 + 2] = cell_states[i].mean_velocity.z;
         }
         sampling_state = SAMPLING_COMPLETED;

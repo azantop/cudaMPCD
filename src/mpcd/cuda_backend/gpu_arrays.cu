@@ -34,11 +34,10 @@ namespace mpcd::cuda {
     UnifiedVector<T>::~UnifiedVector() {
         if (!copy && count != 0 && host_store && device_store) {
             cudaFree(device_store);
-            error_check((std::string("Device free UnifiedVector<") + typeid(T).name() + ">").c_str());
+            error_check((std::string("Device free ~UnifiedVector<") + typeid(T).name() + ">").c_str());
 
             cudaFreeHost(host_store);
-            error_check((std::string("Host free UnifiedVector<") + typeid(T).name() + ">").c_str());
-
+            error_check((std::string("Host free ~UnifiedVector<") + typeid(T).name() + ">").c_str());
         }
     }
 
@@ -119,15 +118,15 @@ namespace mpcd::cuda {
     template class UnifiedVector<FluidState>;
 
     template<typename T>
-    DeviceVector<T>::DeviceVector() : count(0), copy(false) {}
+    DeviceVector<T>::DeviceVector() : store(nullptr), count(0), copy(false) {}
 
     template<typename T>
-    DeviceVector<T>::DeviceVector(DeviceVector::size_type c) : count(c), copy(false) {
+    DeviceVector<T>::DeviceVector(DeviceVector::size_type c) : store(nullptr), count(c), copy(false) {
         alloc(c);
     }
 
     template<typename T>
-    DeviceVector<T>::DeviceVector(DeviceVector::size_type c, int init) : count(c), copy(false) {
+    DeviceVector<T>::DeviceVector(DeviceVector::size_type c, int init) : store(nullptr), count(c), copy(false) {
         alloc(c);
         set(init);
     }

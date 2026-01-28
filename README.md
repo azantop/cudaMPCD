@@ -12,6 +12,7 @@ In the current state, this code can be used to simulate a Poiseuille flow, i.e. 
 - CUDA-capable GPU and NVIDIA CUDA Toolkit
 - C++ compiler with C++14 support or higher
 - Python 3.6+ with development headers
+- pybind11
 - NumPy
 
 ### Building and Installing
@@ -47,7 +48,7 @@ import pympcd
 params = pympcd.Params()
 params.n = 10
 params.temperature = 1.0
-params.volume_size = (100, 100, 10)
+params.volume_size = (10, 10, 100)
 params.periodicity = (1, 1, 0)
 params.drag = 0.001
 params.delta_t = 0.02
@@ -56,8 +57,8 @@ params.algorithm = "srd"
 
 # Create and run simulation
 sim = pympcd.Simulation(params, "cuda")
-sim.step(100)
-sim.step_and_sample(10000)
+sim.step(1000)
+sim.step_and_sample(100000)
 
 # Get results
 density, velocity = sim.get_mean_fields()
