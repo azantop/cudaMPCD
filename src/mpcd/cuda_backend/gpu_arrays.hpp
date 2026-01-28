@@ -31,10 +31,11 @@ namespace mpcd::cuda {
         T*         host_store;
         T*         device_store;
         size_type  count;
+        bool       copy;
 
         // Constructors:
-        UnifiedVector();
-        UnifiedVector(UnifiedVector &&);
+        //UnifiedVector();
+        UnifiedVector(UnifiedVector &&) noexcept;
         UnifiedVector(const UnifiedVector &rhs);
 
         UnifiedVector(size_type c);
@@ -127,7 +128,7 @@ namespace mpcd::cuda {
 
                 count = c;
                 cudaMalloc((void**) &store, count * sizeof(T));
-                error_check((std::string("Alloc DeviceVector<") + typeid(T).name() + ">:" + std::to_string(count) + " elements").c_str());
+                error_check((std::string("Alloc DeviceVector<") + typeid(T).name() + ">: " + std::to_string(count) + " elements").c_str());
 
             }
 

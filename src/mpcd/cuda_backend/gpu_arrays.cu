@@ -8,14 +8,21 @@
 
 namespace mpcd::cuda {
     // AsyncVector method definitions
-    template<class T> UnifiedVector<T>::UnifiedVector() = default;
-    template<class T> UnifiedVector<T>::UnifiedVector(UnifiedVector &&) = default;
+    //template<class T> UnifiedVector<T>::UnifiedVector() = default;
+    template<class T>
+    UnifiedVector<T>::UnifiedVector(UnifiedVector &&rhs) noexcept
+        : host_store(rhs.host_store), device_store(rhs.device_store), count(rhs.count), copy(rhs.copy) {
+        rhs.host_store = nullptr;
+        rhs.device_store = nullptr;
+        rhs.count = 0;
+        rhs.copy = 1;
+    }
 
     template<class T>
-    UnifiedVector<T>::UnifiedVector(const UnifiedVector &rhs) : host_store(rhs.host_store), device_store(rhs.device_store), count(rhs.count) {}
+    UnifiedVector<T>::UnifiedVector(const UnifiedVector &rhs) : host_store(rhs.host_store), device_store(rhs.device_store), count(rhs.count), copy(true) {}
 
     template<class T>
-    UnifiedVector<T>::UnifiedVector(UnifiedVector::size_type c) : count(c){
+    UnifiedVector<T>::UnifiedVector(UnifiedVector::size_type c) : count(c), copy(false) {
         cudaMallocHost((void**) &host_store, count * sizeof(T));
         error_check((std::string("Host alloc UnifiedVector<") + typeid(T).name() + ">: " + std::to_string(count) + " elements").c_str());
 
@@ -25,11 +32,11 @@ namespace mpcd::cuda {
 
     template<class T>
     UnifiedVector<T>::~UnifiedVector() {
-        if (count != 0) {
+        if (!copy && count != 0 && host_store && device_store) {
             cudaFree(device_store);
             error_check((std::string("Device free UnifiedVector<") + typeid(T).name() + ">").c_str());
 
-            cudaFreeHost( host_store );
+            cudaFreeHost(host_store);
             error_check((std::string("Host free UnifiedVector<") + typeid(T).name() + ">").c_str());
 
         }
@@ -37,14 +44,14 @@ namespace mpcd::cuda {
 
     template<class T>
     void UnifiedVector<T>::push() {
-        cudaMemcpy( device_store, host_store, count * sizeof( T ), cudaMemcpyHostToDevice );
+        cudaMemcpy(device_store, host_store, count * sizeof(T), cudaMemcpyHostToDevice);
         error_check((std::string("UnifiedVector<") + typeid(T).name() + ">::push").c_str());
 
     }
 
     template<class T>
     void UnifiedVector<T>::pull() {
-        cudaMemcpy( host_store, device_store, count * sizeof( T ), cudaMemcpyDeviceToHost );
+        cudaMemcpy(host_store, device_store, count * sizeof(T), cudaMemcpyDeviceToHost);
         error_check((std::string("UnifiedVector<") + typeid(T).name() + ">::pull").c_str());
     }
 
@@ -112,10 +119,10 @@ namespace mpcd::cuda {
     template class UnifiedVector<FluidState>;
 
     template<typename T>
-    DeviceVector<T>::DeviceVector() : count(0), copy(0) {}
+    DeviceVector<T>::DeviceVector() : count(0), copy(false) {}
 
     template<typename T>
-    DeviceVector<T>::DeviceVector(DeviceVector::size_type c) : count(c) {
+    DeviceVector<T>::DeviceVector(DeviceVector::size_type c) : count(c), copy(false) {
         alloc(c);
     }
 
