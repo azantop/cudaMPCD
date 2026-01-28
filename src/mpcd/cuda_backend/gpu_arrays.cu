@@ -15,7 +15,7 @@ namespace mpcd::cuda {
         rhs.host_store = nullptr;
         rhs.device_store = nullptr;
         rhs.count = 0;
-        rhs.copy = 1;
+        rhs.copy = true;
     }
 
     template<class T>
@@ -127,18 +127,18 @@ namespace mpcd::cuda {
     }
 
     template<typename T>
-    DeviceVector<T>::DeviceVector(DeviceVector::size_type c, int init) : count(c) {
+    DeviceVector<T>::DeviceVector(DeviceVector::size_type c, int init) : count(c), copy(false) {
         alloc(c);
         set(init);
     }
 
     template<typename T>
-    DeviceVector<T>::DeviceVector(T* data, DeviceVector::size_type c) : store(data), count(c), copy(1) {}
+    DeviceVector<T>::DeviceVector(T* data, DeviceVector::size_type c) : store(data), count(c), copy(true) {}
 
     template<typename T>
     __host__ __device__ DeviceVector<T>::~DeviceVector() {
         #ifndef __CUDA_ARCH__
-            if ( !copy and count != 0 ) {
+            if (!copy && count != 0 && store) {
                 cudaFree(store);
                 error_check((std::string("delete/free GpuVector type: ") + typeid(T).name()).c_str());
             }

@@ -123,8 +123,8 @@ namespace mpcd::cuda {
                 if (!hasCudaDevice())
                     throw std::runtime_error("No CUDA device found");
 
-                if ( count != 0 )
-                    cudaFree( store );
+                if (!copy && count != 0 && store)
+                    cudaFree(store);
 
                 count = c;
                 cudaMalloc((void**) &store, count * sizeof(T));
