@@ -52,11 +52,7 @@ params.periodicity = (1, 1, 0)
 params.drag = 0.001
 params.delta_t = 0.02
 params.experiment = "standart"
-<<<<<<< HEAD
-params.algorithm = "extended"
-=======
 params.algorithm = "srd"
->>>>>>> 14beb11 (Fixed bindings array return sizes)
 
 # Create and run simulation
 sim = pympcd.Simulation(params, "cuda")
