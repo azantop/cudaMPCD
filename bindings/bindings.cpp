@@ -1,5 +1,7 @@
 #include <initializer_list>
+#include <cstddef>
 #include <vector>
+
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
@@ -18,12 +20,20 @@ using mpcd::MPCDAlgorithm;
  * Helper function to convert a vector to a NumPy array.
  * Assumes column-major order.
  */
-template<typename T, typename U>
-py::array_t<T> vector_to_numpy(std::vector<T>&& vec, std::initializer_list<U>&& shape ) {
-    auto* heap_vec = new std::vector<T>(std::move(vec));
-    py::capsule owner(heap_vec, [](void* p) { delete static_cast<std::vector<T>*>(p); });
-    return py::array_t<T>(shape, heap_vec->data(), owner);
-}
+ template<typename T>
+ py::array_t<T> vector_to_numpy(std::vector<T>&& vec, std::vector<ssize_t> shape) {
+     auto* heap_vec = new std::vector<T>(std::move(vec));
+     py::capsule owner(heap_vec, [](void* p) { delete static_cast<std::vector<T>*>(p); });
+
+     // Calculate strides for row-major order (C-style)
+     std::vector<size_t> strides(shape.size());
+     strides.back() = sizeof(T);
+     for (int i = shape.size() - 2; i >= 0; --i) {
+         strides[i] = strides[i + 1] * shape[i + 1];
+     }
+
+     return py::array_t<T>(shape, strides, heap_vec->data(), owner);
+ }
 
 PYBIND11_MODULE(_pympcd, m) {
     m.doc() = "Python bindings for Multi Particle Collision Dynamics (MPCD) Simulation.";
@@ -38,21 +48,23 @@ PYBIND11_MODULE(_pympcd, m) {
             auto const& parameters = self.getParameters();
 
             // Reshape to 3D voxel arrays with column-major order:
-            size_t x = parameters.volume_size[0], y = parameters.volume_size[1], z = parameters.volume_size[2];
+            ssize_t x = parameters.volume_size[0], y = parameters.volume_size[1], z = parameters.volume_size[2];
             return py::make_tuple(vector_to_numpy(std::move(density), {x, y, z}),
-                                  vector_to_numpy(std::move(velocity), {x, y, z, 3ul}));
+                                  vector_to_numpy(std::move(velocity), {x, y, z, 3l}));
         }, "Return the mean density and velocity fields (array of voxels) of the fluid after accumulating statistics.")
         .def("get_particle_positions", [](const SimulationHandle &self) {
             std::vector<float> positions;
             self.getParticlePositions(positions);  // return by const ref or copy
             // Reshape to 2D array of vectors with column-major order:
-            return vector_to_numpy(std::move(positions), {positions.size(), 3ul});
+            ssize_t num_particles = positions.size() / 3, dims = 3;
+            return vector_to_numpy(std::move(positions), {num_particles, dims});
         }, "Returns the positions of the particles as array of vectors. Data is copied from internal vectors into NumPy arrays.")
         .def("get_particle_velocities", [](const SimulationHandle &self) {
             std::vector<float> velocities;
             self.getParticleVelocities(velocities);  // return by const ref or copy
             // Reshape to 2D array of vectors with column-major order:
-            return vector_to_numpy(std::move(velocities), {velocities.size(), 3ul});
+            ssize_t num_particles = velocities.size() / 3, dims = 3;
+            return vector_to_numpy(std::move(velocities), {num_particles, dims});
         }, "Returns the velocities of the particles as array of vectors. Data is copied from internal vectors into NumPy arrays.");
 
     py::class_<SimulationParameters>(m, "Params", "Class representing simulation parameters")
@@ -77,9 +89,10 @@ PYBIND11_MODULE(_pympcd, m) {
                     [](SimulationParameters &p, py::tuple t) {
                         if (t.size() != 3)
                             throw std::runtime_error("Expected 3 elements");
-                        p.volume_size[0] = t[0].cast<float>();
-                        p.volume_size[1] = t[1].cast<float>();
-                        p.volume_size[2] = t[2].cast<float>();
+
+                        p.volume_size[0] = t[0].cast<unsigned>();
+                        p.volume_size[1] = t[1].cast<unsigned>();
+                        p.volume_size[2] = t[2].cast<unsigned>();
                         p.N = p.n * p.volume_size[0] * p.volume_size[1] * p.volume_size[2];
                     }
                 )

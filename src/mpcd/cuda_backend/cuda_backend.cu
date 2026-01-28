@@ -295,7 +295,7 @@ namespace mpcd::cuda {
 
     void CudaBackend::getSampleMean(std::vector<float>& mean_density, std::vector<float>& mean_velocity) {
         cell_states.pull();
-        mean_density.resize(cell_states.size() * 3);
+        mean_density.resize(cell_states.size());
         mean_velocity.resize(cell_states.size() * 3);
         for (size_t i = 0; i < cell_states.size(); i++) {
             mean_density[i] = cell_states[i].density;
