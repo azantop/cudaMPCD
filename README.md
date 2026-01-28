@@ -51,11 +51,11 @@ params.volume_size = (100, 100, 10)
 params.periodicity = (1, 1, 0)
 params.drag = 0.001
 params.delta_t = 0.02
-params.experiment = "channel"
+params.experiment = "standart"
 params.algorithm = "extended"
 
 # Create and run simulation
-sim = pympcd.Simulation(params, "output_directory")
+sim = pympcd.Simulation(params, "cuda")
 sim.step(100)
 sim.step_and_sample(10000)
 
