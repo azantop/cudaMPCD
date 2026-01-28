@@ -17,6 +17,7 @@ find_package(pybind11 REQUIRED)
 # Set CUDA environment if defined
 #if(DEFINED ENV{CUDA})
     include_directories(PUBLIC $ENV{CUDA}/include)
+    set(CMAKE_CUDA_FLAGS_DEBUG "-G -g")
 #endif()
 
 # Compile CUDA files separately

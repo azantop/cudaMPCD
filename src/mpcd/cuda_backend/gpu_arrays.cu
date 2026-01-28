@@ -98,7 +98,7 @@ namespace mpcd::cuda {
 
     template<typename T>
     UnifiedVector<T>::operator DeviceVector<T>() {
-        return DeviceVector<T>(host_store, count);
+        return DeviceVector<T>(device_store, count); // sets copy = true
     }
 
     // Force instantiation
