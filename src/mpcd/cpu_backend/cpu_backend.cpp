@@ -15,6 +15,23 @@ namespace mpcd::cpu {
     CPUBackend::CPUBackend(SimulationParameters const& params) : Backend(params),
                                                                  particles(params.N)
     {
+
+        std::cout << "Logging output:\n Volume size: " << params.volume_size[0] << "x" << params.volume_size[1] << "x" << params.volume_size[2] << std::endl;
+        std::cout << "n particles per cell: " << params.n << std::endl;
+
+        const int64_t vol_x = static_cast<int64_t>(params.volume_size[0]);
+        const int64_t vol_y = static_cast<int64_t>(params.volume_size[1]);
+        const int64_t vol_z = static_cast<int64_t>(params.volume_size[2]);
+        const int64_t n = static_cast<int64_t>(params.n);
+
+        const int64_t total_cells = vol_x * vol_y * vol_z;
+        const int64_t total_particles = total_cells * n;
+
+        std::cout << "Calculated total cells: " << total_cells << std::endl;
+        std::cout << "Calculated total particles: " << total_particles << std::endl;
+        std::cout << "About to allocate particles vector..." << std::endl;
+
+
         math::Vector scale = {params.volume_size[0], params.volume_size[1], params.volume_size[2]};
         math::IntVector perio = {params.periodicity[0], params.periodicity[1], params.periodicity[2]};
         scale = scale + 2 * (1 - perio);

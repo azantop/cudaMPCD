@@ -90,9 +90,9 @@ PYBIND11_MODULE(_pympcd, m) {
                         if (t.size() != 3)
                             throw std::runtime_error("Expected 3 elements");
 
-                        p.volume_size[0] = t[0].cast<unsigned>();
-                        p.volume_size[1] = t[1].cast<unsigned>();
-                        p.volume_size[2] = t[2].cast<unsigned>();
+                        p.volume_size[0] = t[0].cast<float>();
+                        p.volume_size[1] = t[1].cast<float>();
+                        p.volume_size[2] = t[2].cast<float>();
                         p.N = p.n * p.volume_size[0] * p.volume_size[1] * p.volume_size[2];
                     }
                 )

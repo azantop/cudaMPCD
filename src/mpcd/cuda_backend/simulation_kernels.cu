@@ -26,7 +26,7 @@ namespace mpcd::cuda {
                                             uint32_t start)
         {
             size_t idx    = blockIdx.x * blockDim.x + threadIdx.x,
-                stride = blockDim.x * gridDim.x;
+                   stride = blockDim.x * gridDim.x;
             auto   random = generator[idx];
             math::Vector scale = volume_size - 2 * (1 - periodicity);
 

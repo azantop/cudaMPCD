@@ -25,7 +25,9 @@ namespace mpcd::cuda {
                                                                    sample_counter(0),
                                                                    sampling_state(SAMPLING_COMPLETED)
     {
+        cudaDeviceReset();
         cudaSetDevice(parameters.device_id);
+        error_check("cudaSetDevice");
 
         // query device properties to decide kernel launch layouts
         cudaDeviceProp properties;
@@ -107,6 +109,9 @@ namespace mpcd::cuda {
         data.create_group( "fluid" );
     }
 
+    CudaBackend::~CudaBackend() {
+        cudaDeviceReset();  // This might help with cleanup
+    }
     /**
     *   @brief Data io, either creating snapshots or averaging and writing to disk.
     */
@@ -224,7 +229,7 @@ namespace mpcd::cuda {
         particles.pull();
         positions.resize(particles.size() * 3);
         for (size_t i = 0; i < particles.size(); i++) {
-            positions[i * 3] = particles[i].position.x;
+            positions[i * 3 + 0] = particles[i].position.x;
             positions[i * 3 + 1] = particles[i].position.y;
             positions[i * 3 + 2] = particles[i].position.z;
         }
@@ -234,7 +239,7 @@ namespace mpcd::cuda {
         particles.pull();
         velocities.resize(particles.size() * 3);
         for (size_t i = 0; i < particles.size(); i++) {
-            velocities[i * 3] = particles[i].velocity.x;
+            velocities[i * 3 + 0] = particles[i].velocity.x;
             velocities[i * 3 + 1] = particles[i].velocity.y;
             velocities[i * 3 + 2] = particles[i].velocity.z;
         }

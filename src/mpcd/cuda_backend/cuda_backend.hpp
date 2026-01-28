@@ -62,6 +62,7 @@ namespace mpcd::cuda {
 
         // routines:
         CudaBackend(SimulationParameters const&);  // initialization
+        ~CudaBackend();  // cleanup
 
         // data io:
         void writeSample();

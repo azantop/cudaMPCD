@@ -19,8 +19,8 @@ namespace mpcd {
         ExperimentType experiment;
         MPCDAlgorithm  algorithm;
 
-        std::array<unsigned, 3> periodicity;
-        std::array<unsigned, 3> volume_size;
+        std::array<int, 3>   periodicity;
+        std::array<float, 3> volume_size;
 
         unsigned int N, // number of particles
                      n, // number of particles per cell
