@@ -53,7 +53,7 @@ params.periodicity = (1, 1, 0)
 params.drag = 0.001
 params.delta_t = 0.02
 params.experiment = "standart"
-params.algorithm = "srd"
+params.algorithm = "extended"
 
 # Create and run simulation
 sim = pympcd.Simulation(params, "cuda")
@@ -67,35 +67,32 @@ density, velocity = sim.get_mean_fields()
 ## Testing
 The Poiseuille flow is a geometry for which the Navier-Stokes equations can be solved analytically. 
 Thus, we can use this geometry for testing the code.
-After the simulation, we may use the flow field data as follows (in Julia code):
+After the simulation, we may use the flow field data as follows:
 ```
-using HDF5
-using PyPlot
-using Statistics
+import matplotlib.pyplot as plt
+import math
 
-file = h5open( "data/poiseuille_flow/simulation_data.h5" )
-data = read( file[ "fluid/100000" ] )
-close( file );
+# Calculate velocity profile
+x_velocity = velocity[:,:,:,0]; 
+vel_profile = x_velocity.mean(axis=(0,1))
 
-density    = data[1,:,:,:];
-x_velocity = data[2,:,:,:]; # and so on...
-profile = reshape( mean( x_velocity, dims=(1,2) ), : ); # make one-dimensional
+plt.plot(vel_profile) # will show a parabola
+plt.xlabel('channel cross section')
+plt.ylabel('flow speed')
 
-plot( profile ) # will show a parabola
+# Simulation parameters:
+L = params.volume_size[2]
+g = params.drag
+n = params.n
+dt = params.delta_t
 
-#simulation parameters:
-L = 100
-g = 0.0001
-n = 10
-Δt = 0.02
+# Viscosity measurement:
+eta = L * L * n * g / (8 * vel_profile.max())
 
-# viscosity measurement:
-η = L * L * n * g / ( 8 * max( profile... ) )
+# Viscosity theoretical:
+eta_theo = (1 - math.cos(120/180*math.pi)) / (6*3*dt) * (n - 1 + math.exp(-n))
 
-# viscosity theoretical:
-η_theo = ( 1 - cos(120/180*π)) / (6*3*Δt) * ( n - 1 + exp(-n) )
-
-println( "theoretical: " η_theo, ", measured:", η ) 
+print( "theoretical: ", eta_theo, ", measured:", eta ) 
 ```
 The last line prints the two values of the fluid viscosity "theoretical: 37.50, measured: 37.27"
 
