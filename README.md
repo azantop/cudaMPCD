@@ -68,7 +68,7 @@ density, velocity = sim.get_mean_fields()
 The Poiseuille flow is a geometry for which the Navier-Stokes equations can be solved analytically. 
 Thus, we can use this geometry for testing the code.
 After the simulation, we may use the flow field data as follows:
-```
+```python
 import matplotlib.pyplot as plt
 import math
 
