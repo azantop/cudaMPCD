@@ -171,7 +171,7 @@ namespace mpcd::cuda {
         auto const     shift              = fabs( grid_shift.z ); // create wall's ghost particles on the fly
         unsigned const sign               = grid_shift.z > 0;
         float const    sin_alpha          = sinf( ( M_PI * 120 ) / 180 ), // these are used to represent the SRD rotation matrix
-                    cos_alpha          = cosf( ( M_PI * 120 ) / 180 );
+                    cos_alpha             = cosf( ( M_PI * 120 ) / 180 );
 
         drag *= delta_t; // pressure gradient that accelerates the flow
 
@@ -348,14 +348,22 @@ namespace mpcd::cuda {
         /**
         *  @brief Add more data when performing an average
         */
-        __global__ void accumulate(DeviceVolumeContainer<MPCCell> mpc_cells, DeviceVector<FluidState> cell_states) {
+        __global__ void accumulate(DeviceVolumeContainer<MPCCell> mpc_cells, DeviceVector<FluidState> cell_states, DeviceVector<FluidState> kahan_c) {
             size_t idx    = blockIdx.x * blockDim.x + threadIdx.x,
-                stride = blockDim.x * gridDim.x;
+                   stride = blockDim.x * gridDim.x;
 
             for (; idx < mpc_cells.size(); idx += stride) {
                 auto cell_centre = mpc_cells.get_position( idx );
-                cell_states[idx].density       += mpc_cells[cell_centre].density;
-                cell_states[idx].mean_velocity += mpc_cells[cell_centre].mean_velocity;
+                {
+                    auto y = mpc_cells[cell_centre].density - kahan_c[idx].density;
+                    auto t = cell_states[idx].density + y;
+                    kahan_c[idx].density = (t - cell_states[idx].density) - y;
+                    cell_states[idx].density = t;
+                }
+                auto y = mpc_cells[cell_centre].mean_velocity - kahan_c[idx].mean_velocity;
+                auto t = cell_states[idx].mean_velocity + y;
+                kahan_c[idx].mean_velocity = (t - cell_states[idx].mean_velocity) - y;
+                cell_states[idx].mean_velocity = t;
             }
         }
 
@@ -366,7 +374,7 @@ namespace mpcd::cuda {
             size_t idx    = blockIdx.x * blockDim.x + threadIdx.x,
                 stride = blockDim.x * gridDim.x;
 
-            math::Float inverse = 1.0 / n_samples;
+            double inverse = 1.0 / n_samples;
 
             for (; idx < mpc_cells.size(); idx += stride) {
                 auto cell_centre = mpc_cells.get_position( idx );

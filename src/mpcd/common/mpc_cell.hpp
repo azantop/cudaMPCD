@@ -102,7 +102,7 @@ namespace mpcd {
     *  @brief Minimal fluid state struct. The 3rd moment is not neccesary because there is a thermostat.
     */
     struct FluidState {
-        math::Float  density;      // 1st moment
+        math::Float  density;       // 1st moment
         math::Vector mean_velocity; // 2nd moment
     };
 } // namespace mpcd::cuda

@@ -15,9 +15,10 @@ namespace mpcd::cuda {
     */
     CudaBackend::CudaBackend(SimulationParameters const& params) : Backend([&]{ cudaSetDevice(params.device_id); return params; }()),
                                                                    particles(static_cast<size_t>(params.volume_size[0] * params.volume_size[1] * params.volume_size[2] * params.n)),
-                                                                   particles_sorted(10),
+                                                                   particles_sorted(0),
                                                                    mpc_cells({params.volume_size[0], params.volume_size[1], params.volume_size[2]}),
                                                                    cell_states(static_cast<size_t>(params.volume_size[0] * params.volume_size[1] * params.volume_size[2])),
+                                                                   kahan_c(cell_states.size()),
                                                                    uniform_list(mpc_cells.size() * 4 * params.n),
                                                                    uniform_counter(mpc_cells.size()),
                                                                    step_counter(0),
@@ -124,6 +125,7 @@ namespace mpcd::cuda {
 
         switch (probe){
             case ProbingType::snapshots_only:
+                kahan_c.set(0);
                 sampling::snapshot<<<cuda_config.block_count, cuda_config.block_size>>>(mpc_cells, cell_states);
                 error_check( "snapshot" );
                 break;
@@ -132,7 +134,7 @@ namespace mpcd::cuda {
                 error_check( "snapshot" );
                 break;
             case ProbingType::accumulate:
-                sampling::accumulate<<<cuda_config.block_count, cuda_config.block_size>>>(mpc_cells, cell_states);
+                sampling::accumulate<<<cuda_config.block_count, cuda_config.block_size>>>(mpc_cells, cell_states, kahan_c);
                 error_check( "accumulate" );
                 break;
             case ProbingType::finish_accumulation:
@@ -282,10 +284,11 @@ namespace mpcd::cuda {
                 if (sampling_state == SAMPLING_COMPLETED) {
                     sampling_state = SAMPLING_IN_PROGRESS;
                     sample_counter = 0;
+                    kahan_c.set(0);
                     sampling::snapshot<<<cuda_config.block_count, cuda_config.block_size>>>(mpc_cells, cell_states);
                 } else {
                     sample_counter++;
-                    sampling::accumulate<<<cuda_config.block_count, cuda_config.block_size>>>(mpc_cells, cell_states);
+                    sampling::accumulate<<<cuda_config.block_count, cuda_config.block_size>>>(mpc_cells, cell_states, kahan_c);
                 }
             } else {
                 sampling::finish<<<cuda_config.block_count, cuda_config.block_size>>>(sample_counter, mpc_cells, cell_states);

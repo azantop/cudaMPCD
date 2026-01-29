@@ -23,7 +23,8 @@ namespace mpcd::cuda {
         Vector                           grid_shift;  // SRD grid shift
 
         DeviceVolumeContainer<MPCCell>   mpc_cells;   // SRD cell storage
-        UnifiedVector<FluidState>        cell_states; // for averaging over the fluid state
+        UnifiedVector<FluidState>        cell_states, // for averaging over the fluid state
+                                         kahan_c; // cache for kahan summation
 
         // The indices for fluid particles are stored in a lookup table for the collision step.
         // This optimizes the data througput, because particles can be stored in shared memory
