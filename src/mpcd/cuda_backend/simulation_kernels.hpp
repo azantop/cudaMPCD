@@ -14,7 +14,7 @@ namespace mpcd::cuda {
         __global__ void seedRandomNumberGenerators(DeviceVector<Xoshiro128Plus> generator, DeviceVector<uint64_t> seed);
 
         // Randomly distribute particles in the simulation domain
-        __global__ void distributeParticles( DeviceVector<Particle> particles, DeviceVolumeContainer<MPCCell> mpc_cells,
+        __global__ void distributeParticles(DeviceVector<Particle> particles, DeviceVolumeContainer<MPCCell> mpc_cells,
                                             DeviceVector<Xoshiro128Plus> generator, mpcd::Vector grid_shift,
                                             mpcd::Vector volume_size, mpcd::IntVector periodicity, mpcd::Float thermal_velocity,
                                             ExperimentType experiment_type,
@@ -22,14 +22,14 @@ namespace mpcd::cuda {
     }  //  namespace initialize
 
     // MPC streaming step kernel
-    __global__ void translateParticles( DeviceVector<Particle> particles, DeviceVolumeContainer<MPCCell> mpc_cells,
+    __global__ void translateParticles(DeviceVector<Particle> particles, DeviceVolumeContainer<MPCCell> mpc_cells,
                                         DeviceVector<Xoshiro128Plus> generator, mpcd::Vector grid_shift,
                                         mpcd::Vector volume_size, mpcd::IntVector periodicity, mpcd::Float delta_t,
                                         ExperimentType experiment_type,
                                         DeviceVector<uint32_t> uniform_counter, DeviceVector<uint32_t> uniform_list);
 
     // Standart SRD collision kernel
-    __global__ void srdCollision( DeviceVector<Particle> particles, DeviceVolumeContainer<MPCCell> mpc_cells,
+    __global__ void srdCollision(DeviceVector<Particle> particles, DeviceVolumeContainer<MPCCell> mpc_cells,
                                 Xoshiro128Plus* generator,
                                 mpcd::Vector grid_shift, mpcd::Vector volume_size, mpcd::IntVector periodicity,
                                 mpcd::Float delta_t, mpcd::Float drag, mpcd::Float thermal_velocity,

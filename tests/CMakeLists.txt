@@ -44,3 +44,8 @@ add_cpp_test(test_vector_3d
 add_cuda_test(test_gpu_arrays
     unit/cuda/test_gpu_arrays.cu
 )
+
+# Unit tests for GPU simulation kernels
+add_cuda_test(test_simulation_kernels
+    unit/cuda/test_simulation_kernels.cu
+)

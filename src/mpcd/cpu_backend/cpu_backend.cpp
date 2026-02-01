@@ -38,7 +38,7 @@ namespace mpcd::cpu {
 
         // Initialize particles
         for (size_t i = 0; i < particles.size(); ++i) {
-            particles[i].position = {random.uniform_float(), random.uniform_float(), random.uniform_float()}; // uniform on the unit cube.
+            particles[i].position = {random.genUniformFloat(), random.genUniformFloat(), random.genUniformFloat()}; // uniform on the unit cube.
             particles[i].position = (particles[i].position - mpcd::Float(0.5)).scaledWith(scale);  // rescale to the simulation volume
             particles[i].velocity = random.maxwell_boltzmann() * params.thermal_velocity;
         }

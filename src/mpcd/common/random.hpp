@@ -131,7 +131,7 @@ namespace mpcd {
         /**
         *   @brief produce random fload uniformly distributed on the interval [ 0, 1 )
         */
-        __host__ __device__ float uniform_float()
+        __host__ __device__ float genUniformFloat()
         {
             return ( static_cast<float>( operator()() )
                     * ( 1.0f / static_cast< float >( UINT32_MAX ) ) );
@@ -140,7 +140,7 @@ namespace mpcd {
         /**
         *   @brief produce random int uniformly distributed on the interval [ min, max ]
         */
-        __host__ __device__ int uniform_int( int min , int max )
+        __host__ __device__ int genUniformInt( int min , int max )
         {
             return ( static_cast< int >( operator()() / 2 ) % ( max - min + 1 ) + min );
         }
@@ -148,23 +148,23 @@ namespace mpcd {
         /**
         *   @brief produce random float accoring to normal distribution using Bux-Muller
         */
-        __device__ float gaussianf()
+        __host__ __device__ float gaussianf()
         {
             generate_f = !generate_f;
 
             if ( !generate_f )
             return z1_f;
 
-            #if ( defined __CUDACC__ ) or ( defined __NVCC__ ) // hide device functions from gcc
-                float u1 = __logf( uniform_float() + FLT_MIN );
+            #if defined(__CUDA_ARCH__)
+                float u1 = __logf( genUniformFloat() + FLT_MIN );
             #else
-                float u1 = logf( uniform_float() + FLT_MIN );
+                float u1 = logf( genUniformFloat() + FLT_MIN );
             #endif
             float u2 = ( static_cast< float >( operator()() )
                     * ( 2.0f *  static_cast< float >( M_PI )
                         / static_cast< float >( UINT32_MAX ) ) );
 
-            #if ( defined __CUDACC__ ) or ( defined __NVCC__ ) // hide device functions from gcc
+            #if defined(__CUDA_ARCH__)
                 __sincosf(u2, &z1_f, &u2);
             #else
                 sincosf(u2, &z1_f, &u2);
@@ -177,21 +177,21 @@ namespace mpcd {
         /**
         *   @brief produce random double accoring to normal distribution using Bux-Muller
         */
-        __device__ double gaussian()
+        __host__ __device__ double gaussian()
         {
             generate_d = !generate_d;
 
             if ( !generate_d )
             return z1_d;
 
-            double u1 = log( uniform_float() + FLT_MIN ),
+            double u1 = log( genUniformFloat() + FLT_MIN ),
                 u2 = operator()() * ( 2.0 / UINT32_MAX );
 
-    #if ( defined __CUDACC__ ) or ( defined __NVCC__ ) // hide device functions from gcc
+        #if defined(__CUDA_ARCH__)
             sincospi( u2, &z1_d, &u2 );
-    #else
+        #else
             sincos( 2 * M_PI * u2 , &z1_d, &u2 );
-    #endif
+        #endif
 
                 z1_d *= sqrt( -2 * u1 );
             return u2 * sqrt( -2 * u1 );
@@ -201,41 +201,48 @@ namespace mpcd {
         *   @brief produce random fload accoring to the gamma distribution using the method
         *          taken from the gnu scientific library, assuming a > 0
         */
-        __device__ float gamma(Float const& a, Float const& b)
+        __host__ __device__ float gamma(Float const& a, Float const& b)
         {
-            if ( a < 1 )
-            {
-                Float u = uniform_float();
-                return gamma( 1 + a, b ) * __powf( u, 1 / a );
+            if ( a < 1 ) {
+                Float u = genUniformFloat();
+            #if defined(__CUDA_ARCH__)
+                return gamma(1 + a, b) * __powf(u, 1 / a);
+            #else
+                return gamma(1 + a, b) * powf(u, 1 / a);
+            #endif
             }
             else
             {
                 Float x, v, u;
-                Float d = a - Float( 1.0 / 3.0 );
-    #if ( defined __CUDACC__ ) or ( defined __NVCC__ )
-                Float c = Float( 1.0 / 3.0 ) / __fsqrt_rn( d );
-    #else
-                Float c = Float( 1.0 / 3.0 ) / sqrtf( d );
-    #endif
+                Float d = a - Float(1.0 / 3.0);
+            #if defined(__CUDA_ARCH__)
+                Float c = Float(1.0 / 3.0) / __fsqrt_rn(d);
+            #else
+                Float c = Float(1.0 / 3.0) / sqrtf(d);
+            #endif
 
                 for ( ;; )
                 {
                     //do
                     //{
                         x = gaussianf();
-                        v = Float( 1.0 ) + c * x;
+                        v = Float(1.0) + c * x;
 
                     //} while ( v <= 0 );
-                    if ( v <= 0 )
-                        v = Float( 1.0 ) - c * x;
+                    if (v <= 0)
+                        v = Float(1.0) - c * x;
 
                     v = v * v * v;
-                    u = uniform_float();
+                    u = genUniformFloat();
 
-                    if ( u < 1 - Float( 0.0331 ) * ( x * x ) * ( x * x ) )
+                    if (u < 1 - Float(0.0331) * (x * x) * (x * x))
                         break;
 
-                    if ( __logf( u ) < Float( 0.5 ) * x * x + d * ( 1 - v + __logf( v ) ) )
+                #if defined(__CUDA_ARCH__)
+                    if (__logf(u) < Float(0.5) * x * x + d * (1 - v + __logf(v)))
+                #else
+                    if (logf(u) < Float(0.5) * x * x + d * (1 - v + logf(v)))
+                #endif
                         break;
                 }
                 return b * d * v;
@@ -245,27 +252,27 @@ namespace mpcd {
         /**
         *  @brief generate a random vector on the unit sphere.
         */
-        __device__ mpcd::Vector unit_vektor()
+        __host__ __device__ mpcd::Vector genUnitVector()
         {
             float rsq = 2.0, rd1, rd2;
 
             do
             {
-                rd1 = 1.0f - 2.0f * uniform_float();
-                rd2 = 1.0f - 2.0f * uniform_float();
+                rd1 = 1.0f - 2.0f * genUniformFloat();
+                rd2 = 1.0f - 2.0f * genUniformFloat();
                 rsq = rd1 * rd1 + rd2 * rd2;
             }
             while ( rsq > 1.0f );
 
-    #if ( defined __CUDACC__ ) or ( defined __NVCC__ )
+        #if defined(__CUDA_ARCH__)
             float rdh = 2.0f * __fsqrt_rn( 1.0f - rsq );
-    #else
+        #else
             float rdh = 2.0f * sqrtf( 1.0f - rsq );
-    #endif
+        #endif
             return { rd1 * rdh, rd2 * rdh, ( 1.0f - 2.0f * rsq ) };
         }
 
-        __device__ mpcd::Vector maxwell_boltzmann() {
+        __host__ __device__ mpcd::Vector maxwell_boltzmann() {
             return { gaussianf(), gaussianf(), gaussianf() };
         }
     };
@@ -342,7 +349,7 @@ namespace mpcd {
                 s[(j + p) & 15] = t[j];
         }
 
-        __host__ __device__ float uniform_float()
+        __host__ __device__ float genUniformFloat()
         {
             regenerate = !regenerate;
 
@@ -362,7 +369,7 @@ namespace mpcd {
             return ( static_cast< double >( operator()() ) * ( 1.0 / static_cast< double >( UINT64_MAX ) ) );
         }
 
-        __host__ __device__ unsigned int uniform_int( int min , int max )
+        __host__ __device__ unsigned int genUniformInt( int min , int max )
         {
             return ( static_cast< unsigned int >( operator()() / 2 ) % ( max - min + 1 ) + min );
         }

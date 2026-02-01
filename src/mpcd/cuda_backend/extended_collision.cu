@@ -57,7 +57,7 @@ namespace mpcd::cuda {
             random.sync_phase();
             if ( add_ghosts  )
                 for ( int i = 0; i < n_density; ++i )
-                    if ( ( ( random.uniform_float() > shift ) xor layer ) xor sign )
+                    if ( ( ( random.genUniformFloat() > shift ) xor layer ) xor sign )
                         ++added_ghosts;
 
             n_particles += added_ghosts;
@@ -102,11 +102,11 @@ namespace mpcd::cuda {
 
                     for ( int i = n_particles - added_ghosts + threadIdx.x % group_size; i < n_particles; i += group_size )
                     {
-                        float z = z_scale * random.uniform_float();
+                        float z = z_scale * random.genUniformFloat();
 
                         particle_idx     [ prefix + i ] = -1u;
                         particle_velocity[ prefix + i ] = random.maxwell_boltzmann() * thermal_velocity;
-                        particle_position[ prefix + i ] = mpcd::Vector( random.uniform_float() - 0.5f, random.uniform_float() - 0.5f, layer ? 0.5f - z : z - 0.5f ) + offset;
+                        particle_position[ prefix + i ] = mpcd::Vector( random.genUniformFloat() - 0.5f, random.genUniformFloat() - 0.5f, layer ? 0.5f - z : z - 0.5f ) + offset;
                     }
                 }
             }
@@ -143,7 +143,7 @@ namespace mpcd::cuda {
 
                     float theta, phi; // chose discretized random direction:
                     {
-                        int select  = gpu_utilities::group_share(random.uniform_int( 0, steps * ( steps - 1 ) ), mask, group_size);
+                        int select  = gpu_utilities::group_share(random.genUniformInt( 0, steps * ( steps - 1 ) ), mask, group_size);
                         int phi_i   = select % steps + 1,
                             theta_i = select / steps + 1;
 
@@ -158,10 +158,10 @@ namespace mpcd::cuda {
                                         __sinf( theta ) * __sinf( phi ),
                                         __cosf( theta ) };
 
-                    if ( gpu_utilities::group_share( random.uniform_int( 0, 1 ), mask, group_size ) )
+                    if ( gpu_utilities::group_share( random.genUniformInt( 0, 1 ), mask, group_size ) )
                         axis = -axis;
                 #else
-                    mpcd::Vector axis = gpu_utilities::group_share( random.unit_vektor(), mask, group_size );
+                    mpcd::Vector axis = gpu_utilities::group_share( random.genUnitVector(), mask, group_size );
                 #endif
 
                 float z_centre = mpc_cells.get_position( group_cell_idx ).z;
@@ -219,7 +219,7 @@ namespace mpcd::cuda {
                 #endif
 
                 mpcd::Vector   delta_L        = {}; // cells' change in angular momentum
-                bool           collide        = gpu_utilities::group_share( random.uniform_float(), mask, group_size ) < probability;
+                bool           collide        = gpu_utilities::group_share( random.genUniformFloat(), mask, group_size ) < probability;
                 unsigned const collision_mask = __ballot_sync( mask, collide ); // which groups participate in calculating the collision?
 
                 if ( collide )

@@ -113,9 +113,10 @@ namespace mpcd::cuda {
     template class UnifiedVector<float>;
     template class UnifiedVector<double>;
     template class UnifiedVector<Particle>;
-    template class UnifiedVector<mpcd::Vector3D<float>>;
+    template class UnifiedVector<Vector>;
     template class UnifiedVector<MPCCell>;
     template class UnifiedVector<FluidState>;
+    template class UnifiedVector<Xoshiro128Plus>;
 
     template<typename T>
     DeviceVector<T>::DeviceVector() : store(nullptr), count(0), copy(false) {}

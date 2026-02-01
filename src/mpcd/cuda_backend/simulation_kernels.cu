@@ -40,7 +40,7 @@ namespace mpcd::cuda {
 
                 do {
                     replace  = false;
-                    particle.position = {random.uniform_float(), random.uniform_float(), random.uniform_float()}; // uniform on the unit cube.
+                    particle.position = {random.genUniformFloat(), random.genUniformFloat(), random.genUniformFloat()}; // uniform on the unit cube.
                     particle.position = (particle.position - mpcd::Float(0.5)).scaledWith(scale);  // rescale to the simulation volume
 
                     if (experiment_type == ExperimentType::channel)
@@ -195,7 +195,7 @@ namespace mpcd::cuda {
 
             if (add_ghosts) // create wall's ghost particles on the fly; prepare number of ghosts
                 for (int i = 0; i < n_density; ++i)
-                    if ((random.uniform_float() > shift) xor layer xor sign)
+                    if ((random.genUniformFloat() > shift) xor layer xor sign)
                         ++added_ghosts;
 
             n_particles += added_ghosts;
@@ -206,80 +206,69 @@ namespace mpcd::cuda {
             uint32_t const sum           = __shfl_sync( 0xFFFFFFFF, prefix + n_particles, active_cells - 1 );
             bool     const thread_active = prefix + n_particles < max_particles and cell_idx < mpc_cells.size();
 
-            if ( thread_active )
-            {
-                for ( uint32_t i = 0; i < n_particles - added_ghosts; ++i )
-                    particle_idx[ prefix + i ] = cell_idx + i * mpc_cells.size(); // write to shared mem which lookup table positions need to be loaded.
+            if (thread_active) {
+                for (uint32_t i = 0; i < n_particles - added_ghosts; ++i)
+                    particle_idx[prefix + i] = cell_idx + i * mpc_cells.size(); // write to shared mem which lookup table positions need to be loaded.
 
-                if ( add_ghosts ) // create wall's ghost particles on the fly
-                {
-                    auto pos = mpc_cells.get_position( cell_idx );
+                if (add_ghosts) { // create wall's ghost particles on the fly
+                    auto pos = mpc_cells.get_position(cell_idx);
 
-                    for ( int i = n_particles - added_ghosts; i < n_particles; ++i )
+                    for (int i = n_particles - added_ghosts; i < n_particles; ++i)
                     {
                         float z;
 
-                        do
-                        {
-                            z = random.uniform_float();
-                        }
-                        while ( ( ( z < shift ) xor layer ) xor sign );
+                        do {
+                            z = random.genUniformFloat();
+                        } while ( ( ( z < shift ) xor layer ) xor sign );
 
-                        particle_idx     [ prefix + i ] = -1u; // this means that this particle should not be loaded
-                        particle_position[ prefix + i ] = mpcd::Vector( random.uniform_float() - 0.5f, random.uniform_float() - 0.5f, z - 0.5f ) + pos;
-                        particle_velocity[ prefix + i ] = random.maxwell_boltzmann() * thermal_velocity;
+                        particle_idx     [prefix + i] = -1u; // this means that this particle should not be loaded
+                        particle_position[prefix + i] = mpcd::Vector(random.genUniformFloat() - 0.5f, random.genUniformFloat() - 0.5f, z - 0.5f) + pos;
+                        particle_velocity[prefix + i] = random.maxwell_boltzmann() * thermal_velocity;
                     }
                 }
             }
 
             __syncwarp();
 
-            for ( uint32_t i = threadIdx.x; i < sum; i += 32 ) // load the entries of the lookup table uniformly without binding threads to SRD cells
-                if ( particle_idx[ i ] != -1u )
-                    particle_idx[ i ] = gpu_utilities::texture_load( uniform_list.data() + particle_idx[ i ] );
+            for (uint32_t i = threadIdx.x; i < sum; i += 32) // load the entries of the lookup table uniformly without binding threads to SRD cells
+                if (particle_idx[i] != -1u)
+                    particle_idx[i] = gpu_utilities::texture_load(uniform_list.data() + particle_idx[i]);
 
             __syncwarp();
 
-            for ( uint32_t i = threadIdx.x; i < sum; i += 32 ) // load the SRD fluid particles uniformly without binding threads to SRD cells
-            {
-                if ( particle_idx[ i ] != -1u )
-                {
-                    if ( particle_idx[ i ] < regular_particles )
-                    {
-                        auto particle = gpu_utilities::texture_load( particles.data() + particle_idx[ i ] );
+            for (uint32_t i = threadIdx.x; i < sum; i += 32) { // load the SRD fluid particles uniformly without binding threads to SRD cells
+                if (particle_idx[i] != -1u) {
+                    if (particle_idx[i] < regular_particles) {
+                        auto particle = gpu_utilities::texture_load(particles.data() + particle_idx[i]);
 
-                        particle_position[ i ] = particle.position;
-                        particle_velocity[ i ] = particle.velocity;
+                        particle_position[i] = particle.position;
+                        particle_velocity[i] = particle.velocity;
                     }
                 }
             }
 
-            if ( thread_active ) // SRD collision step, each thread one SRD cell
-            {
-                if ( n_particles > 1 )
-                {
-                    for ( uint32_t i = 0; i < n_particles; ++i )
-                        cell.unlocked_add( { 0, 0, particle_position[ prefix + i ], particle_velocity[ prefix + i ] } );
+            if (thread_active) { // SRD collision step, each thread one SRD cell
+                if (n_particles > 1) {
+                    for (uint32_t i = 0; i < n_particles; ++i)
+                        cell.unlocked_add({0, 0, particle_position[prefix + i], particle_velocity[prefix + i]});
 
                     cell.average();
                     random.sync_phase();
 
-                    auto  axis = random.unit_vektor();
+                    auto  axis = random.genUnitVector();
 
-                    for ( uint32_t i = 0; i < n_particles; ++i ) // rotation step:
-                    {
-                        auto v      = particle_velocity[ prefix + i ] - cell.mean_velocity;
-                        auto v_para = axis * ( v.dotProduct( axis ) );
+                    for (uint32_t i = 0; i < n_particles; ++i) { // rotation step:
+                        auto v      = particle_velocity[prefix + i] - cell.mean_velocity;
+                        auto v_para = axis * (v.dotProduct(axis));
                         auto v_perp = v - v_para;
 
-                        particle_velocity[ prefix + i ] = v_para + cos_alpha * v_perp + sin_alpha * v_perp.crossProduct( axis );
+                        particle_velocity[prefix + i] = v_para + cos_alpha * v_perp + sin_alpha * v_perp.crossProduct(axis);
                     }
 
-                    for ( uint32_t i = 0; i < n_particles; ++i ) // finilize step:
-                    {
-                        particle_velocity[ prefix + i ] += cell.get_correction( particle_position[ prefix + i ] );
-                        particle_position[ prefix + i ]  = apply_periodic_boundaries( particle_position[ prefix + i ] - grid_shift );
-                        particle_velocity[ prefix + i ].x += drag;
+                    for (uint32_t i = 0; i < n_particles; ++i) { // finilize step:
+                        particle_velocity[prefix + i] += cell.get_correction(particle_position[prefix + i]);
+                        particle_position[prefix + i] = apply_periodic_boundaries(particle_position[prefix + i] - grid_shift);
+                        particle_velocity[prefix + i].x += drag;
                     }
                 }
             }
@@ -288,20 +277,17 @@ namespace mpcd::cuda {
 
             cell_idx = __shfl_sync( 0xFFFFFFFF, cell_idx, threadIdx.x + active_cells ); // cyclic shift so that theads' cell_index remains uniform
 
-            for ( uint32_t i = threadIdx.x; i < sum; i += 32 ) // write the SRD fluid particles to memory uniformly without binding threads to SRD cells
-            {
-                if ( particle_idx[ i ] != -1u )
-                {
-                    if ( particle_idx [ i ] < regular_particles )
-                    {
-                        auto cidx = mpc_cells.get_index( particle_position[ i ] );
-                        particles[ particle_idx[ i ] ] = { 0, 0, particle_position[ i ], particle_velocity[ i ], cidx };
+            for (uint32_t i = threadIdx.x; i < sum; i += 32) { // write the SRD fluid particles to memory uniformly without binding threads to SRD cells
+                if (particle_idx[ i ] != -1u) {
+                    if (particle_idx [ i ] < regular_particles) {
+                        auto cidx = mpc_cells.get_index(particle_position[i]);
+                        particles[particle_idx[i]] = {0, 0, particle_position[i], particle_velocity[i], cidx};
                     }
                 }
             }
         }
 
-        generator[ blockIdx.x * blockDim.x + threadIdx.x ] = random;
+        generator[blockIdx.x * blockDim.x + threadIdx.x] = random;
     }
 
     namespace sampling
