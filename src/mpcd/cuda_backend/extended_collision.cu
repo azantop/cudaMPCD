@@ -13,12 +13,12 @@ namespace mpcd::cuda {
     __global__ __launch_bounds__(32, 8) void extendedCollision(DeviceVector<Particle> particles,
                                                                 DeviceVolumeContainer<MPCCell> mpc_cells,
                                                                 Xoshiro128Plus* generator,
-                                                                math::Vector grid_shift,
-                                                                math::Vector volume_size,
-                                                                math::IntVector periodicity,
-                                                                math::Float delta_t,
-                                                                math::Float drag,
-                                                                math::Float thermal_velocity,
+                                                                mpcd::Vector grid_shift,
+                                                                mpcd::Vector volume_size,
+                                                                mpcd::IntVector periodicity,
+                                                                mpcd::Float delta_t,
+                                                                mpcd::Float drag,
+                                                                mpcd::Float thermal_velocity,
                                                                 uint32_t n_density,
                                                                 DeviceVector<uint32_t> uniform_counter,
                                                                 DeviceVector<uint32_t> uniform_list, uint32_t const shared_bytes)
@@ -26,10 +26,10 @@ namespace mpcd::cuda {
         extern __shared__ uint32_t shared_mem [];
 
         // asign shared memory for particle positions and velocities
-        uint32_t const max_particles      = shared_bytes / ( sizeof( uint32_t ) + 2 * sizeof( math::Vector ) ); // this is the per particle memory
+        uint32_t const max_particles      = shared_bytes / ( sizeof( uint32_t ) + 2 * sizeof( mpcd::Vector ) ); // this is the per particle memory
         uint32_t     * particle_idx       = shared_mem;                                                         // storing the indices of loaded particles
-        math::Vector * particle_position  = reinterpret_cast< math::Vector* >( particle_idx + max_particles );  // 1st vector
-        math::Vector * particle_velocity  = particle_position + max_particles;                                  // 2nd vector
+        mpcd::Vector * particle_position  = reinterpret_cast< mpcd::Vector* >( particle_idx + max_particles );  // 1st vector
+        mpcd::Vector * particle_velocity  = particle_position + max_particles;                                  // 2nd vector
 
         auto           random              = generator[ blockIdx.x * blockDim.x + threadIdx.x ];
         Particle* ghost_particles     = nullptr; // override this to add ghost particles!
@@ -48,7 +48,7 @@ namespace mpcd::cuda {
         {
             // ~~~ setup & load particles:
 
-            int  n_particles  = (cell_idx < end ) ? min( cell_lookup_size, uniform_counter[ cell_idx ] ) : 0; // read lookup size
+            int  n_particles  = (cell_idx < end ) ? ::min( cell_lookup_size, uniform_counter[ cell_idx ] ) : 0; // read lookup size
             bool layer        = (mpc_cells.get_z_idx( cell_idx ) == (volume_size.z - (sign ? 1 : 2))); // wall layer?
             bool add_ghosts   = (not periodicity.z)
                                     and ((mpc_cells.get_z_idx( cell_idx ) == sign) or layer); // wall layer?
@@ -66,7 +66,7 @@ namespace mpcd::cuda {
 
             int       prefix         = gpu_utilities::warp_prefix_sum( n_particles ); // where does the threads storage start?
             // how many cells' particles fit into shared memory?
-            int const active_cells   = min( 8, __popc( __ballot_sync( -1u, prefix + n_particles < max_particles and cell_idx < mpc_cells.size() ) ) );
+            int const active_cells   = ::min( 8, __popc( __ballot_sync( -1u, prefix + n_particles < max_particles and cell_idx < mpc_cells.size() ) ) );
             int const group_size     = 32 / active_cells;
             int const sum            = __shfl_sync( -1u, prefix + n_particles, active_cells - 1 ); // total number of particles of the used number of cells.
             int       group_cell_idx = cell_idx;
@@ -106,7 +106,7 @@ namespace mpcd::cuda {
 
                         particle_idx     [ prefix + i ] = -1u;
                         particle_velocity[ prefix + i ] = random.maxwell_boltzmann() * thermal_velocity;
-                        particle_position[ prefix + i ] = math::Vector( random.uniform_float() - 0.5f, random.uniform_float() - 0.5f, layer ? 0.5f - z : z - 0.5f ) + offset;
+                        particle_position[ prefix + i ] = mpcd::Vector( random.uniform_float() - 0.5f, random.uniform_float() - 0.5f, layer ? 0.5f - z : z - 0.5f ) + offset;
                     }
                 }
             }
@@ -121,7 +121,7 @@ namespace mpcd::cuda {
 
             for ( int i = threadIdx.x; i < sum; i += 32 ) // now transfer the particles into shared mem based on the lookup table
             {
-                if ( particle_idx[ i ] != -1u )
+                if (particle_idx[ i ] != -1u)
                 {
                     // using texture load path __ldg()
                     auto addr = particle_idx[ i ] < particles.size() ? particles.data() : ghost_particles;
@@ -143,7 +143,7 @@ namespace mpcd::cuda {
 
                     float theta, phi; // chose discretized random direction:
                     {
-                        int select  = gpu_utilities::group_share( random.uniform_int( 0, steps * ( steps - 1 ) ), mask, group_size );
+                        int select  = gpu_utilities::group_share(random.uniform_int( 0, steps * ( steps - 1 ) ), mask, group_size);
                         int phi_i   = select % steps + 1,
                             theta_i = select / steps + 1;
 
@@ -154,24 +154,24 @@ namespace mpcd::cuda {
 
                         phi = phi_i * ( float( M_PI ) / steps );
                     }
-                    math::Vector axis  = { __sinf( theta ) * __cosf( phi ), // transfer from spherical coordinates to cartesian.
+                    mpcd::Vector axis  = { __sinf( theta ) * __cosf( phi ), // transfer from spherical coordinates to cartesian.
                                         __sinf( theta ) * __sinf( phi ),
                                         __cosf( theta ) };
 
                     if ( gpu_utilities::group_share( random.uniform_int( 0, 1 ), mask, group_size ) )
                         axis = -axis;
                 #else
-                    math::Vector axis = gpu_utilities::group_share( random.unit_vektor(), mask, group_size );
+                    mpcd::Vector axis = gpu_utilities::group_share( random.unit_vektor(), mask, group_size );
                 #endif
 
                 float z_centre = mpc_cells.get_position( group_cell_idx ).z;
-                math::Vector centre_of_mass = {},
+                mpcd::Vector centre_of_mass = {},
                             mean_velocity  = {};
 
                 bool constexpr conserve_L = true;
 
                 // calculate cells' center of mass and mean velocity, iterate in thread groups:
-                for ( math::Vector* position = particle_position + prefix + threadIdx.x % group_size,
+                for ( mpcd::Vector* position = particle_position + prefix + threadIdx.x % group_size,
                                 * velocity = particle_velocity + prefix + threadIdx.x % group_size,
                                 * end      = particle_position + prefix + n_particles;
                             position < end;
@@ -218,7 +218,7 @@ namespace mpcd::cuda {
                     float probability = scale * ( projection_0 - projection_1 ) * size_0 * size_1;
                 #endif
 
-                math::Vector   delta_L        = {}; // cells' change in angular momentum
+                mpcd::Vector   delta_L        = {}; // cells' change in angular momentum
                 bool           collide        = gpu_utilities::group_share( random.uniform_float(), mask, group_size ) < probability;
                 unsigned const collision_mask = __ballot_sync( mask, collide ); // which groups participate in calculating the collision?
 
@@ -264,7 +264,7 @@ namespace mpcd::cuda {
 
                 // --------------- end collision.
 
-                for ( math::Vector* position = particle_position + prefix + threadIdx.x % group_size,
+                for ( mpcd::Vector* position = particle_position + prefix + threadIdx.x % group_size,
                                 * velocity = particle_velocity + prefix + threadIdx.x % group_size,
                                 * end      = particle_position + prefix + n_particles;
                             position < end;
@@ -278,39 +278,41 @@ namespace mpcd::cuda {
             }
             __syncwarp(); // ~~~ write particles back to ram:
 
-            for ( int i = threadIdx.x; i < sum; i += 32 )
+            for (int i = threadIdx.x; i < sum; i += 32)
             {
-                if ( particle_idx[ i ] != -1u )
+                if ( particle_idx[i] != -1u )
                 {
-                    particle_velocity[ i ].x += drag;
+                    particle_velocity[i].x += drag;
 
-                    auto apply_periodic_boundaries = [&] ( auto r ) // does not interfere with using walls...
+                    auto apply_periodic_boundaries = [&] (auto r) // does not interfere with using walls...
                     {
-                        r.x = fmodf( r.x + 1.5f * volume_size.x, volume_size.x ) - volume_size.x * 0.5f;
-                        r.y = fmodf( r.y + 1.5f * volume_size.y, volume_size.y ) - volume_size.y * 0.5f;
-                        r.z = fmodf( r.z + 1.5f * volume_size.z, volume_size.z ) - volume_size.z * 0.5f;
+                        r.x = fmodf(r.x + 1.5f * volume_size.x, volume_size.x) - volume_size.x * 0.5f;
+                        r.y = fmodf(r.y + 1.5f * volume_size.y, volume_size.y) - volume_size.y * 0.5f;
+                        r.z = fmodf(r.z + 1.5f * volume_size.z, volume_size.z) - volume_size.z * 0.5f;
                         return r;
                     };
-                    particle_position[ i ] = apply_periodic_boundaries( particle_position[ i ] - grid_shift );
+                    particle_position[ i ] = apply_periodic_boundaries(particle_position[ i ] - grid_shift);
 
-                    assert( particle_position[ i ].isFinite() );
-                    assert( particle_velocity[ i ].isFinite() );
+                    assert(particle_position[ i ].isFinite());
+                    assert(particle_velocity[ i ].isFinite());
 
                     // ~~~ unified write back by switching pointer for usual / ghost particles:
 
-                    *( ( particle_idx[ i ] < particles.size() ? particles.data() : ghost_particles ) + particle_idx[ i ] )
-                        = { static_cast< uint16_t >( 0 ), static_cast< uint16_t >( particle_idx [ i ] < particles.size() ? 0u : 1u ),
-                            particle_position[ i ], particle_velocity[ i ], };
+                    auto addr = particle_idx[i] < particles.size() ? particles.data() : ghost_particles;
+                    *(addr + particle_idx[i]) = {uint16_t(0),
+                                                 static_cast<uint16_t>(particle_idx [ i ] < particles.size() ? 0u : 1u),
+                                                 particle_position[i],
+                                                 particle_velocity[i], };
                 }
             }
             __syncwarp();
 
-            if ( threadIdx.x >= active_cells ) // rewind skipped cells
+            if (threadIdx.x >= active_cells) // rewind skipped cells
                 cell_idx -= stride;
 
-            cell_idx = __shfl_sync( 0xFFFFFFFF, cell_idx, threadIdx.x + active_cells ); // uniform interation, "shift" processed cells out of the warp iteration.
+            cell_idx = __shfl_sync(0xFFFFFFFF, cell_idx, threadIdx.x + active_cells); // uniform interation, "shift" processed cells out of the warp iteration.
         }
 
-        generator[ blockIdx.x * blockDim.x + threadIdx.x ] = random; // save new state of the generators
+        generator[blockIdx.x * blockDim.x + threadIdx.x] = random; // save new state of the generators
     }
 } // namespace mpcd::cuda

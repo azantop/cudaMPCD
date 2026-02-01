@@ -23,7 +23,7 @@ namespace mpcd {
     */
     struct Xoshiro128Plus
     {
-        using Float = math::Float;
+        using Float = mpcd::Float;
 
         uint32_t s[ 4 ]; // intenal state
 
@@ -245,7 +245,7 @@ namespace mpcd {
         /**
         *  @brief generate a random vector on the unit sphere.
         */
-        __device__ math::Vector unit_vektor()
+        __device__ mpcd::Vector unit_vektor()
         {
             float rsq = 2.0, rd1, rd2;
 
@@ -265,7 +265,7 @@ namespace mpcd {
             return { rd1 * rdh, rd2 * rdh, ( 1.0f - 2.0f * rsq ) };
         }
 
-        __device__ math::Vector maxwell_boltzmann() {
+        __device__ mpcd::Vector maxwell_boltzmann() {
             return { gaussianf(), gaussianf(), gaussianf() };
         }
     };

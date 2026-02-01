@@ -12,8 +12,8 @@ namespace mpcd::cpu {
 
     class CPUBackend : public Backend
     {
-        using Vector = math::Vector;
-        using Float  = math::Float;
+        using Vector = mpcd::Vector;
+        using Float  = mpcd::Float;
 
         std::vector<Particle>          particles;   // SRD fluid particles
 

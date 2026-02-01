@@ -14,8 +14,8 @@ namespace mpcd {
     */
     struct MPCCell
     {
-        using Vector = math::Vector;
-        using Float  = math::Float;
+        using Vector = mpcd::Vector;
+        using Float  = mpcd::Float;
 
         unsigned density;
         Vector   mean_velocity,
@@ -102,7 +102,7 @@ namespace mpcd {
     *  @brief Minimal fluid state struct. The 3rd moment is not neccesary because there is a thermostat.
     */
     struct FluidState {
-        math::Float  density;       // 1st moment
-        math::Vector mean_velocity; // 2nd moment
+        mpcd::Float  density;       // 1st moment
+        mpcd::Vector mean_velocity; // 2nd moment
     };
 } // namespace mpcd::cuda

@@ -13,25 +13,25 @@
     #define __forceinline__
 #endif
 
-namespace math
-{
-    // CUDA compatibility for older architectures (< 6.0)
-    #if defined(__CUDA_ARCH__) && __CUDA_ARCH__ < 600
-    __device__ double atomicAdd(double* address, double const val) {
-        unsigned long long int* address_as_ull = (unsigned long long int*)address;
-        unsigned long long int old = *address_as_ull, assumed;
+// CUDA compatibility for older architectures (< 6.0)
+#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ < 600
+__device__ double atomicAdd(double* address, double const val) {
+    unsigned long long int* address_as_ull = (unsigned long long int*)address;
+    unsigned long long int old = *address_as_ull, assumed;
 
-        do {
-            assumed = old;
-            old = atomicCAS(address_as_ull, assumed,
-                           __double_as_longlong(val + __longlong_as_double(assumed)));
-        }
-        while (assumed != old);
-
-        return __longlong_as_double(old);
+    do {
+        assumed = old;
+        old = atomicCAS(address_as_ull, assumed,
+                       __double_as_longlong(val + __longlong_as_double(assumed)));
     }
-    #endif
+    while (assumed != old);
 
+    return __longlong_as_double(old);
+}
+#endif
+
+namespace mpcd
+{
     /**
      * @brief 3D vector template class optimized for CUDA compatibility
      *
@@ -409,7 +409,7 @@ namespace math
         const Vector yAxis = { 0, 1, 0 };
         const Vector zAxis = { 0, 0, 1 };
     }
-}
+} // namespace mpcd
 
 #if !defined(__CUDA_ARCH__) && !defined(__NVCC__)
     #undef __host__

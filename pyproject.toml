@@ -2,7 +2,6 @@
 requires = ["scikit-build-core>=0.11", "pybind11>=3.0"]
 build-backend = "scikit_build_core.build"
 
-
 [project]
 name = "pympcd"
 version = "1.0.0"
@@ -11,7 +10,7 @@ license-files = ["LICENSE"]
 description="A package for Multi Particle Collsion Dynamics (MPCD) Simulations."
 readme = "README.md"
 authors = [
-  { name = "My Name", email = "me@email.com" },
+  { name = "Arne Zantop", email = "me@email.com" },
 ]
 requires-python = ">=3.9"
 classifiers = [
@@ -25,3 +24,17 @@ classifiers = [
   "Programming Language :: Python :: 3.14",
   "Private :: Do Not Upload",
 ]
+dependencies = ["numpy"]
+
+[project.optional-dependencies]
+test = ["pytest", "pytest-cuda", "pytest-benchmark", "hypothesis"]
+dev = ["pytest", "black", "mypy"]
+
+[tool.scikit-build]
+cmake.args = ["-DBUILD_TESTING=ON"]
+cmake.build-type = "Release"
+
+[tool.pytest.ini_options]
+testpaths = ["tests/python"]
+python_files = ["test_*.py", "*_test.py"]
+addopts = ["-v", "--tb=short"]

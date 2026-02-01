@@ -7,6 +7,15 @@ project(
   LANGUAGES CXX CUDA
 )
 
+# Enable testing
+include(CTest)
+enable_testing()
+
+# Add tests subdirectory
+if(BUILD_TESTING)
+    add_subdirectory(tests)
+endif()
+
 # Find required packages
 find_package(HDF5 REQUIRED COMPONENTS CXX)
 include_directories(include PUBLIC ${HDF5_INCLUDE_DIRS})

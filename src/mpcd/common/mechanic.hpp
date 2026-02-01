@@ -25,7 +25,7 @@ namespace mpcd {
         __device__ T trace()       const { return xx + yy + zz; }
         __device__ T determinant() const { return xx * ( yy * zz -  yz * yz ) + xz * ( 2 * xy * yz - yy * xz ) - ( xy * xy * zz ); }
 
-        __device__ math::Vector3D<T> operator* ( math::Vector3D<T> const& v ) const
+        __device__ mpcd::Vector3D<T> operator* ( mpcd::Vector3D<T> const& v ) const
         {
             return { ( xx * v.x ) + ( xy * v.y ) + ( xz * v.z ),
                     ( xy * v.x ) + ( yy * v.y ) + ( yz * v.z ),
@@ -104,7 +104,7 @@ namespace mpcd {
         __device__ traegheitsmoment() {}
 
         // ~~~ functions:
-        __device__ void shift_frame( math::Vector shift, T const& mass = 1 ) // Steinerscher Statz
+        __device__ void shift_frame( mpcd::Vector shift, T const& mass = 1 ) // Steinerscher Statz
         {
             auto squares = shift.scaledWith( shift );
 
@@ -116,7 +116,7 @@ namespace mpcd {
             yz -= ( shift.y * shift.z     ) * mass;
         }
 
-        __device__ void unshift_frame( math::Vector3D<T> shift, T const& mass = 1 ) // Steinerscher Statz
+        __device__ void unshift_frame( mpcd::Vector3D<T> shift, T const& mass = 1 ) // Steinerscher Statz
         {
             auto squares = shift.scaled_with( shift );
 
@@ -128,7 +128,7 @@ namespace mpcd {
             yz += ( shift.y * shift.z     ) * mass;
         }
 
-        __device__ T diagonal_to_orientation( math::Vector3D<T> const& axis ) const
+        __device__ T diagonal_to_orientation( mpcd::Vector3D<T> const& axis ) const
         {
             return axis.x * axis.x * xx + axis.y * axis.y * yy, axis.z * axis.z * zz;
         }

@@ -70,7 +70,7 @@ namespace mpcd::cuda {
         struct isVector3D_ : std::false_type {};
 
         template<typename T>
-        struct isVector3D_<math::Vector3D<T>> : std::true_type {};
+        struct isVector3D_<mpcd::Vector3D<T>> : std::true_type {};
 
         template<typename T>
         constexpr bool isVector3D = isVector3D_<T>::value;
@@ -113,7 +113,7 @@ namespace mpcd::cuda {
     template class UnifiedVector<float>;
     template class UnifiedVector<double>;
     template class UnifiedVector<Particle>;
-    template class UnifiedVector<math::Vector3D<float>>;
+    template class UnifiedVector<mpcd::Vector3D<float>>;
     template class UnifiedVector<MPCCell>;
     template class UnifiedVector<FluidState>;
 
@@ -189,7 +189,7 @@ namespace mpcd::cuda {
     template class DeviceVector<float>;
     template class DeviceVector<double>;
     template class DeviceVector<Particle>;
-    template class DeviceVector<math::Vector3D<float>>;
+    template class DeviceVector<mpcd::Vector3D<float>>;
     template class DeviceVector<MPCCell>;
     template class DeviceVector<FluidState>;
     template class DeviceVector<Xoshiro128Plus>;
@@ -197,26 +197,26 @@ namespace mpcd::cuda {
     template DeviceVector<float> push(std::vector<float> const&);
     template DeviceVector<double> push(std::vector<double> const&);
     template DeviceVector<Particle> push(std::vector<Particle> const&);
-    template DeviceVector<math::Vector3D<float>> push(std::vector<math::Vector3D<float>> const&);
+    template DeviceVector<mpcd::Vector3D<float>> push(std::vector<mpcd::Vector3D<float>> const&);
     template void push(DeviceVector<float>&, std::vector<float> const&);
     template void push(DeviceVector<double>&, std::vector<double> const&);
     template void push(DeviceVector<Particle>&, std::vector<Particle> const&);
-    template void push(DeviceVector<math::Vector3D<float>>& , std::vector<math::Vector3D<float>> const&);
+    template void push(DeviceVector<mpcd::Vector3D<float>>& , std::vector<mpcd::Vector3D<float>> const&);
     template void push(DeviceVector<float>&, float const*);
     template void push(DeviceVector<double>&, double const*);
     template void push(DeviceVector<Particle>&, Particle const*);
-    template void push(DeviceVector<math::Vector3D<float>>& , math::Vector3D<float> const*);
+    template void push(DeviceVector<mpcd::Vector3D<float>>& , mpcd::Vector3D<float> const*);
 
     template std::vector<float> pull(DeviceVector<float> const&);
     template std::vector<double> pull(DeviceVector<double> const&);
     template std::vector<Particle> pull(DeviceVector<Particle> const&);
-    template std::vector<math::Vector3D<float>> pull(DeviceVector<math::Vector3D<float>> const&);
+    template std::vector<mpcd::Vector3D<float>> pull(DeviceVector<mpcd::Vector3D<float>> const&);
     template void pull(std::vector<float>&, DeviceVector<float> const&);
     template void pull(std::vector<double>&, DeviceVector<double> const&);
     template void pull(std::vector<Particle>&, DeviceVector<Particle> const&);
-    template void pull(std::vector<math::Vector3D<float>>&, DeviceVector<math::Vector3D<float>> const&);
+    template void pull(std::vector<mpcd::Vector3D<float>>&, DeviceVector<mpcd::Vector3D<float>> const&);
     template void pull(float*, DeviceVector<float> const&);
     template void pull(double*, DeviceVector<double> const&);
     template void pull(Particle*, DeviceVector<Particle> const&);
-    template void pull(math::Vector3D<float>*, DeviceVector<math::Vector3D<float>> const&);
+    template void pull(mpcd::Vector3D<float>*, DeviceVector<mpcd::Vector3D<float>> const&);
 } // namespace mpcd::cuda

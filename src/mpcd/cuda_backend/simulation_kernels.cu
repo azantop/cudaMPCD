@@ -20,15 +20,15 @@ namespace mpcd::cuda {
         *  @brief Initialize the fluid by distributing the SRD fluid particles in the simulation volume
         */
         __global__ void distributeParticles(DeviceVector<Particle> particles, DeviceVolumeContainer<MPCCell> mpc_cells,
-                                            DeviceVector<Xoshiro128Plus> generator, math::Vector grid_shift,
-                                            math::Vector volume_size, math::IntVector periodicity, math::Float thermal_velocity,
+                                            DeviceVector<Xoshiro128Plus> generator, mpcd::Vector grid_shift,
+                                            mpcd::Vector volume_size, mpcd::IntVector periodicity, mpcd::Float thermal_velocity,
                                             ExperimentType experiment_type,
                                             uint32_t start)
         {
             size_t idx    = blockIdx.x * blockDim.x + threadIdx.x,
                    stride = blockDim.x * gridDim.x;
             auto   random = generator[idx];
-            math::Vector scale = volume_size - 2 * (1 - periodicity);
+            mpcd::Vector scale = volume_size - 2 * (1 - periodicity);
 
             float channel_radius2 = (volume_size.z - 2) * (volume_size.z - 2) * 0.25f;
 
@@ -41,7 +41,7 @@ namespace mpcd::cuda {
                 do {
                     replace  = false;
                     particle.position = {random.uniform_float(), random.uniform_float(), random.uniform_float()}; // uniform on the unit cube.
-                    particle.position = (particle.position - math::Float(0.5)).scaledWith(scale);  // rescale to the simulation volume
+                    particle.position = (particle.position - mpcd::Float(0.5)).scaledWith(scale);  // rescale to the simulation volume
 
                     if (experiment_type == ExperimentType::channel)
                         replace = replace or ((particle.position.z * particle.position.z + particle.position.y * particle.position.y) > channel_radius2);
@@ -63,13 +63,13 @@ namespace mpcd::cuda {
     *  @brief This function applies the SRD streaming step to the fluid particles
     */
     __global__ void translateParticles(DeviceVector<Particle> particles, DeviceVolumeContainer<MPCCell> mpc_cells,
-                                    DeviceVector<Xoshiro128Plus> generator, math::Vector grid_shift,
-                                    math::Vector volume_size, math::IntVector periodicity, math::Float delta_t,
+                                    DeviceVector<Xoshiro128Plus> generator, mpcd::Vector grid_shift,
+                                    mpcd::Vector volume_size, mpcd::IntVector periodicity, mpcd::Float delta_t,
                                     ExperimentType experiment_type,
                                     DeviceVector<uint32_t> uniform_counter, DeviceVector<uint32_t> uniform_list)
     {
         size_t idx    = blockIdx.x * blockDim.x + threadIdx.x,
-            stride = blockDim.x * gridDim.x;
+               stride = blockDim.x * gridDim.x;
         auto   random = generator[ idx ];
 
         uint32_t cell_lookup_size = uniform_list.size() / uniform_counter.size();
@@ -145,10 +145,10 @@ namespace mpcd::cuda {
     */
     __global__ void __launch_bounds__( 32, 8 ) srdCollision(DeviceVector<Particle> particles, DeviceVolumeContainer<MPCCell> mpc_cells,
                                                             Xoshiro128Plus* generator,
-                                                            math::Vector grid_shift,
-                                                            math::Vector volume_size,
-                                                            math::IntVector periodicity,
-                                                            math::Float delta_t, math::Float drag, math::Float thermal_velocity,
+                                                            mpcd::Vector grid_shift,
+                                                            mpcd::Vector volume_size,
+                                                            mpcd::IntVector periodicity,
+                                                            mpcd::Float delta_t, mpcd::Float drag, mpcd::Float thermal_velocity,
                                                             uint32_t n_density,
                                                             DeviceVector<uint32_t> uniform_counter,
                                                             DeviceVector<uint32_t> uniform_list, uint32_t const shared_bytes )
@@ -156,10 +156,10 @@ namespace mpcd::cuda {
         extern __shared__ uint32_t shared_mem [];
 
         // asign shared memory for particle positions and velocities
-        uint32_t const max_particles      = shared_bytes / ( sizeof( uint32_t ) + 2 * sizeof( math::Vector ) ); // this is the per particle memory
+        uint32_t const max_particles      = shared_bytes / ( sizeof( uint32_t ) + 2 * sizeof( mpcd::Vector ) ); // this is the per particle memory
         uint32_t     * particle_idx       = shared_mem;                                                         // storing the indices of loaded particles
-        math::Vector * particle_position  = reinterpret_cast< math::Vector* >( particle_idx + max_particles );  // 1st vector
-        math::Vector * particle_velocity  = particle_position + max_particles;                                  // 2nd vector
+        mpcd::Vector * particle_position  = reinterpret_cast< mpcd::Vector* >( particle_idx + max_particles );  // 1st vector
+        mpcd::Vector * particle_velocity  = particle_position + max_particles;                                  // 2nd vector
 
         uint32_t       cell_idx           = blockIdx.x * blockDim.x + threadIdx.x,
                     stride             = blockDim.x * gridDim.x;
@@ -188,14 +188,14 @@ namespace mpcd::cuda {
             random.sync_phase();
 
             MPCCell cell         = {};
-            uint32_t      n_particles  = ( cell_idx < mpc_cells.size() ) ? min( cell_lookup_size, uniform_counter[ cell_idx ] ) : 0; // load the table size
-            bool const    layer        = ( mpc_cells.get_z_idx( cell_idx ) == ( volume_size.z - ( sign ? 1 : 2 ) ) ); // wall layer?
-            bool const    add_ghosts   = ( not periodicity.z ) and ( ( mpc_cells.get_z_idx( cell_idx ) == sign ) or layer ); // wall layer?
+            uint32_t      n_particles  = (cell_idx < mpc_cells.size()) ? ::min(cell_lookup_size, uniform_counter[cell_idx]) : 0; // load the table size
+            bool const    layer        = (mpc_cells.get_z_idx(cell_idx) == (volume_size.z - (sign ? 1 : 2)));
+            bool const    add_ghosts   = (not periodicity.z) and ((mpc_cells.get_z_idx(cell_idx) == sign) or layer); // wall layer?
             uint32_t      added_ghosts = {};
 
-            if ( add_ghosts  ) // create wall's ghost particles on the fly; prepare number of ghosts
-                for ( int i = 0; i < n_density; ++i )
-                    if ( ( ( random.uniform_float() > shift ) xor layer ) xor sign )
+            if (add_ghosts) // create wall's ghost particles on the fly; prepare number of ghosts
+                for (int i = 0; i < n_density; ++i)
+                    if ((random.uniform_float() > shift) xor layer xor sign)
                         ++added_ghosts;
 
             n_particles += added_ghosts;
@@ -226,7 +226,7 @@ namespace mpcd::cuda {
                         while ( ( ( z < shift ) xor layer ) xor sign );
 
                         particle_idx     [ prefix + i ] = -1u; // this means that this particle should not be loaded
-                        particle_position[ prefix + i ] = math::Vector( random.uniform_float() - 0.5f, random.uniform_float() - 0.5f, z - 0.5f ) + pos;
+                        particle_position[ prefix + i ] = mpcd::Vector( random.uniform_float() - 0.5f, random.uniform_float() - 0.5f, z - 0.5f ) + pos;
                         particle_velocity[ prefix + i ] = random.maxwell_boltzmann() * thermal_velocity;
                     }
                 }
@@ -311,7 +311,7 @@ namespace mpcd::cuda {
         */
         __global__ void addParticles(DeviceVolumeContainer<MPCCell> mpc_cells, DeviceVector<Particle> particles) {
             size_t idx    = blockIdx.x * blockDim.x + threadIdx.x,
-                stride = blockDim.x * gridDim.x;
+                   stride = blockDim.x * gridDim.x;
 
             for (auto end = particles.size(); idx < end; idx += stride) {
                 auto particle = particles[idx];
@@ -320,15 +320,15 @@ namespace mpcd::cuda {
         }
 
         /**
-        *  @brief 2st step to compute the fluid state on the grid of the SRD collision cell
+        *  @brief 2nd step to compute the fluid state on the grid of the SRD collision cell
         */
         __global__ void averageCells(DeviceVolumeContainer<MPCCell> mpc_cells)
         {
             size_t idx    = blockIdx.x * blockDim.x + threadIdx.x,
-                stride = blockDim.x * gridDim.x;
+                   stride = blockDim.x * gridDim.x;
 
-            for ( ; idx < mpc_cells.size(); idx += stride )
-                mpc_cells[ idx ].average_reduce_only();
+            for (; idx < mpc_cells.size(); idx += stride)
+                mpc_cells[idx].average_reduce_only();
         }
 
         /**
@@ -336,12 +336,11 @@ namespace mpcd::cuda {
         */
         __global__ void snapshot(DeviceVolumeContainer<MPCCell> mpc_cells, DeviceVector<FluidState> cell_states) {
             size_t idx    = blockIdx.x * blockDim.x + threadIdx.x,
-                stride = blockDim.x * gridDim.x;
+                   stride = blockDim.x * gridDim.x;
 
             for (; idx < mpc_cells.size(); idx += stride) {
-                auto cell_centre = mpc_cells.get_position( idx );
-                cell_states[idx].density       = mpc_cells[cell_centre].density;
-                cell_states[idx].mean_velocity = mpc_cells[cell_centre].mean_velocity;
+                cell_states[idx].density       = mpc_cells[idx].density;
+                cell_states[idx].mean_velocity = mpc_cells[idx].mean_velocity;
             }
         }
 
@@ -353,14 +352,13 @@ namespace mpcd::cuda {
                    stride = blockDim.x * gridDim.x;
 
             for (; idx < mpc_cells.size(); idx += stride) {
-                auto cell_centre = mpc_cells.get_position( idx );
                 {
-                    auto y = mpc_cells[cell_centre].density - kahan_c[idx].density;
+                    auto y = mpc_cells[idx].density - kahan_c[idx].density;
                     auto t = cell_states[idx].density + y;
                     kahan_c[idx].density = (t - cell_states[idx].density) - y;
                     cell_states[idx].density = t;
                 }
-                auto y = mpc_cells[cell_centre].mean_velocity - kahan_c[idx].mean_velocity;
+                auto y = mpc_cells[idx].mean_velocity - kahan_c[idx].mean_velocity;
                 auto t = cell_states[idx].mean_velocity + y;
                 kahan_c[idx].mean_velocity = (t - cell_states[idx].mean_velocity) - y;
                 cell_states[idx].mean_velocity = t;
@@ -377,10 +375,8 @@ namespace mpcd::cuda {
             double inverse = 1.0 / n_samples;
 
             for (; idx < mpc_cells.size(); idx += stride) {
-                auto cell_centre = mpc_cells.get_position( idx );
-
-                cell_states[idx].density       += mpc_cells[cell_centre].density;
-                cell_states[idx].mean_velocity += mpc_cells[cell_centre].mean_velocity;
+                cell_states[idx].density       += mpc_cells[idx].density;
+                cell_states[idx].mean_velocity += mpc_cells[idx].mean_velocity;
                 cell_states[idx].density       *= inverse;
                 cell_states[idx].mean_velocity *= inverse;
             }

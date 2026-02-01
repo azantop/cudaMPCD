@@ -3,7 +3,7 @@
 
 namespace mpcd {
     struct alignas(16) Particle {
-        using Vector = math::Vector;
+        using Vector = mpcd::Vector;
 
         uint16_t flags,
                  cidx;

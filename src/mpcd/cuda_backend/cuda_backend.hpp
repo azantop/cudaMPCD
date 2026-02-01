@@ -14,8 +14,8 @@ namespace mpcd::cuda {
 
     class CudaBackend : public Backend
     {
-        using Vector = math::Vector;
-        using Float  = math::Float;
+        using Vector = mpcd::Vector;
+        using Float  = mpcd::Float;
 
         UnifiedVector<Particle>          particles;   // SRD fluid particles
         DeviceVector<Particle>           particles_sorted; // use for gpu sorting later

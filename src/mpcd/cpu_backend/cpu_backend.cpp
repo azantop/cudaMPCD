@@ -32,14 +32,14 @@ namespace mpcd::cpu {
         std::cout << "About to allocate particles vector..." << std::endl;
 
 
-        math::Vector scale = {params.volume_size[0], params.volume_size[1], params.volume_size[2]};
-        math::IntVector perio = {params.periodicity[0], params.periodicity[1], params.periodicity[2]};
+        mpcd::Vector scale = {params.volume_size[0], params.volume_size[1], params.volume_size[2]};
+        mpcd::IntVector perio = {params.periodicity[0], params.periodicity[1], params.periodicity[2]};
         scale = scale + 2 * (1 - perio);
 
         // Initialize particles
         for (size_t i = 0; i < particles.size(); ++i) {
             particles[i].position = {random.uniform_float(), random.uniform_float(), random.uniform_float()}; // uniform on the unit cube.
-            particles[i].position = (particles[i].position - math::Float(0.5)).scaledWith(scale);  // rescale to the simulation volume
+            particles[i].position = (particles[i].position - mpcd::Float(0.5)).scaledWith(scale);  // rescale to the simulation volume
             particles[i].velocity = random.maxwell_boltzmann() * params.thermal_velocity;
         }
     }

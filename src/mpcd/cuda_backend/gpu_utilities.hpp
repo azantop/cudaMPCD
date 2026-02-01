@@ -11,8 +11,8 @@ namespace mpcd::cuda {
 
     namespace gpu_utilities
     {
-        using Vector    = math::Vector;
-        using Float = math::Float;
+        using Vector = mpcd::Vector;
+        using Float  = mpcd::Float;
 
     #if ( defined __CUDACC__ ) or ( defined __NVCC__ )
 

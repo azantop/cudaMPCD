@@ -16,8 +16,8 @@ namespace mpcd::cuda {
     template< typename T >
     struct DeviceVolumeContainer
     {
-        using Vector                 =       math::Vector;
-        using Float                  =       math::Float;
+        using Vector                 =       mpcd::Vector;
+        using Float                  =       mpcd::Float;
         using value_type             =       T;
         using reference              =       T&;
         using const_reference        = const T&;

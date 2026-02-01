@@ -88,9 +88,9 @@ namespace mpcd::cuda {
         }
 
         // initialize SRD fluid particles
-        grid_shift = {random.uniform_float() - math::Float(0.5),
-                    random.uniform_float() - math::Float(0.5),
-                    random.uniform_float() - math::Float(0.5)};
+        grid_shift = {random.uniform_float() - mpcd::Float(0.5),
+                    random.uniform_float() - mpcd::Float(0.5),
+                    random.uniform_float() - mpcd::Float(0.5)};
 
         initialize::distributeParticles<<<cuda_config.block_count, cuda_config.block_size>>>(particles, mpc_cells, generator, grid_shift,
                                         {parameters.volume_size[0], parameters.volume_size[1], parameters.volume_size[2]},
@@ -162,9 +162,9 @@ namespace mpcd::cuda {
     *   @brief Perform SRD streaming step
     */
     void CudaBackend::translationStep() {
-        grid_shift = {random.uniform_float() - math::Float(0.5),
-                    random.uniform_float() - math::Float(0.5),
-                    random.uniform_float() - math::Float(0.5)};
+        grid_shift = {random.uniform_float() - mpcd::Float(0.5),
+                    random.uniform_float() - mpcd::Float(0.5),
+                    random.uniform_float() - mpcd::Float(0.5)};
 
         uniform_counter.set(0);
         translateParticles<<<cuda_config.block_count, cuda_config.block_size>>>( particles, mpc_cells, generator, grid_shift,
