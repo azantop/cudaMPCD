@@ -10,7 +10,7 @@
 #if !defined(__CUDA_ARCH__) && !defined(__NVCC__)
     #define __host__
     #define __device__
-    #define __forceinline__
+    #define __forceinline__ inline
 #endif
 
 // CUDA compatibility for older architectures (< 6.0)
@@ -78,7 +78,7 @@ namespace mpcd
         // Utility functions
         __host__ __device__ __forceinline__
         bool isFinite() const {
-            return isfinite(x) && isfinite(y) && isfinite(z);
+            return std::isfinite(x) && std::isfinite(y) && std::isfinite(z);
         }
 
         // Scalar assignment and comparison operators

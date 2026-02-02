@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include <mpcd/api/simulation_parameters.hpp>
 
 #include "backend/backend.hpp"
@@ -7,6 +8,8 @@
 #include "common/particle.hpp"
 #include "common/mpc_cell.hpp"
 #include "common/random.hpp"
+
+#include "cpu_backend/volume_container.hpp"
 
 namespace mpcd::cpu {
 
@@ -19,8 +22,9 @@ namespace mpcd::cpu {
 
         Vector                         grid_shift;  // SRD grid shift
 
-        //DeviceVolumeContainer<MPCCell>   mpc_cells;   // SRD cell storage
-        std::vector<FluidState>        cell_states; // for averaging over the fluid state
+        VolumeContainer<MPCCell>       mpc_cells;   // SRD cell storage
+        std::vector<FluidState>        cell_states, // for averaging over the fluid state
+                                       kahan_c;
 
         // The indices for fluid particles are stored in a lookup table for the collision step.
         // This optimizes the data througput, because particles can be stored in shared memory
@@ -29,7 +33,7 @@ namespace mpcd::cpu {
                                        uniform_counter; // next free table entry, used with atomicAdd.
 
         //std::vector<Xoshiro128Plus>    generator;  // random number generators for the gpu
-        Xoshiro128Plus               random;     // random number generatofor the cpu
+        Xoshiro128Plus                 random;     // random number generatofor the cpu
 
 
         // To furthe optimize memory loading, the particle array is sorted according to the SRD cell-index.

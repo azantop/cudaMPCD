@@ -354,15 +354,24 @@ namespace mpcd::cuda {
         /**
         *  @brief Finish performing the average
         */
-        __global__ void finish(size_t n_samples, DeviceVolumeContainer<MPCCell> mpc_cells, DeviceVector<FluidState> cell_states) {
+        __global__ void finish(size_t n_samples, DeviceVolumeContainer<MPCCell> mpc_cells, DeviceVector<FluidState> cell_states, DeviceVector<FluidState> kahan_c) {
             size_t idx    = blockIdx.x * blockDim.x + threadIdx.x,
                 stride = blockDim.x * gridDim.x;
 
             double inverse = 1.0 / n_samples;
 
             for (; idx < mpc_cells.size(); idx += stride) {
-                cell_states[idx].density       += mpc_cells[idx].density;
-                cell_states[idx].mean_velocity += mpc_cells[idx].mean_velocity;
+                {
+                    auto y = mpc_cells[idx].density - kahan_c[idx].density;
+                    auto t = cell_states[idx].density + y;
+                    kahan_c[idx].density = (t - cell_states[idx].density) - y;
+                    cell_states[idx].density = t;
+                }
+                auto y = mpc_cells[idx].mean_velocity - kahan_c[idx].mean_velocity;
+                auto t = cell_states[idx].mean_velocity + y;
+                kahan_c[idx].mean_velocity = (t - cell_states[idx].mean_velocity) - y;
+                cell_states[idx].mean_velocity = t;
+
                 cell_states[idx].density       *= inverse;
                 cell_states[idx].mean_velocity *= inverse;
             }

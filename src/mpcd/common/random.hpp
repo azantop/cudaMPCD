@@ -13,7 +13,7 @@
 #else
     #define __host__
     #define __device__
-    #define __forceinline__
+    #define __forceinline__ inline
 #endif
 
 namespace mpcd {

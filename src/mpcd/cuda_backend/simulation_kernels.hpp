@@ -45,6 +45,6 @@ namespace mpcd::cuda {
         // Averaging functionality:
         __global__ void snapshot(DeviceVolumeContainer<MPCCell> mpc_cells, DeviceVector<FluidState> cell_states);
         __global__ void accumulate(DeviceVolumeContainer<MPCCell> mpc_cells, DeviceVector<FluidState> cell_states, DeviceVector<FluidState> kahan_c);
-        __global__ void finish(size_t n_samples, DeviceVolumeContainer<MPCCell> mpc_cells, DeviceVector<FluidState> cell_states);
+        __global__ void finish(size_t n_samples, DeviceVolumeContainer<MPCCell> mpc_cells, DeviceVector<FluidState> cell_states, DeviceVector<FluidState> kahan_c);
     }
 } // namespace mpcd::cuda

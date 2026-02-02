@@ -40,6 +40,10 @@ add_cpp_test(test_vector_3d
     unit/common/test_vector_3d.cpp
 )
 
+add_cpp_test(test_simulation_functions
+    unit/cpp/test_simulation_functions.cpp
+)
+
 # Unit tests for GPU arrays
 add_cuda_test(test_gpu_arrays
     unit/cuda/test_gpu_arrays.cu

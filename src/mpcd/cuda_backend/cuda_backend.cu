@@ -139,7 +139,7 @@ namespace mpcd::cuda {
                 break;
             case ProbingType::finish_accumulation:
                 sampling::finish<<<cuda_config.block_count, cuda_config.block_size>>>(parameters.average_samples / parameters.sample_every,
-                                                                                    mpc_cells, cell_states);
+                                                                                    mpc_cells, cell_states, kahan_c);
                 error_check( "finish" );
                 break;
         }
@@ -280,18 +280,14 @@ namespace mpcd::cuda {
             sampling::averageCells<<<cuda_config.block_count, cuda_config.block_size>>>(mpc_cells);
             error_check( "add particles reduce only" );
 
-            if (i != n_steps-1) {
-                if (sampling_state == SAMPLING_COMPLETED) {
-                    sampling_state = SAMPLING_IN_PROGRESS;
-                    sample_counter = 0;
-                    kahan_c.set(0);
-                    sampling::snapshot<<<cuda_config.block_count, cuda_config.block_size>>>(mpc_cells, cell_states);
-                } else {
-                    sample_counter++;
-                    sampling::accumulate<<<cuda_config.block_count, cuda_config.block_size>>>(mpc_cells, cell_states, kahan_c);
-                }
+            if (sampling_state == SAMPLING_COMPLETED) {
+                sampling_state = SAMPLING_IN_PROGRESS;
+                sample_counter = 0;
+                kahan_c.set(0);
+                sampling::snapshot<<<cuda_config.block_count, cuda_config.block_size>>>(mpc_cells, cell_states);
             } else {
-                sampling::finish<<<cuda_config.block_count, cuda_config.block_size>>>(sample_counter, mpc_cells, cell_states);
+                sample_counter++;
+                sampling::accumulate<<<cuda_config.block_count, cuda_config.block_size>>>(mpc_cells, cell_states, kahan_c);
             }
             error_check( "sample accumulate" );
         }
@@ -301,11 +297,12 @@ namespace mpcd::cuda {
         cell_states.pull();
         mean_density.resize(cell_states.size());
         mean_velocity.resize(cell_states.size() * 3);
+        auto inverse = Float(1) / sample_counter;
         for (size_t i = 0; i < cell_states.size(); i++) {
-            mean_density[i] = cell_states[i].density;
-            mean_velocity[i * 3 + 0] = cell_states[i].mean_velocity.x;
-            mean_velocity[i * 3 + 1] = cell_states[i].mean_velocity.y;
-            mean_velocity[i * 3 + 2] = cell_states[i].mean_velocity.z;
+            mean_density[i] = cell_states[i].density * inverse;
+            mean_velocity[i * 3 + 0] = cell_states[i].mean_velocity.x * inverse;
+            mean_velocity[i * 3 + 1] = cell_states[i].mean_velocity.y * inverse;
+            mean_velocity[i * 3 + 2] = cell_states[i].mean_velocity.z * inverse;
         }
         sampling_state = SAMPLING_COMPLETED;
     }

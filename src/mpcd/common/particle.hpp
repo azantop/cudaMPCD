@@ -5,8 +5,8 @@ namespace mpcd {
     struct alignas(16) Particle {
         using Vector = mpcd::Vector;
 
-        uint16_t flags,
-                 cidx;
+        uint16_t flags;
+        int16_t  cidx;
         Vector   position,
                  velocity;
         uint32_t cell_idx;

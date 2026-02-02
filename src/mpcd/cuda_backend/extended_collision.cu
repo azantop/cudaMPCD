@@ -300,7 +300,7 @@ namespace mpcd::cuda {
 
                     auto addr = particle_idx[i] < particles.size() ? particles.data() : ghost_particles;
                     *(addr + particle_idx[i]) = {uint16_t(0),
-                                                 static_cast<uint16_t>(particle_idx [ i ] < particles.size() ? 0u : 1u),
+                                                 static_cast<int16_t>(particle_idx [ i ] < particles.size() ? 0u : 1u),
                                                  particle_position[i],
                                                  particle_velocity[i], };
                 }

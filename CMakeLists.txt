@@ -39,6 +39,7 @@ add_library(simulator_backend SHARED
     src/mpcd/cuda_backend/extended_collision.cu
     src/mpcd/cuda_backend/cuda_allocator.cu
     src/mpcd/cpu_backend/cpu_backend.cpp
+    src/mpcd/cpu_backend/simulation_functions.cpp
     src/mpcd/adapters/hdf5/h5cpp.cpp
 )
 target_include_directories(simulator_backend

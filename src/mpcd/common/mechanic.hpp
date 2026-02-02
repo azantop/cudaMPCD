@@ -5,7 +5,7 @@
 #if !defined(__CUDA_ARCH__) && !defined(__NVCC__)
     #define __host__
     #define __device__
-    #define __forceinline__
+    #define __forceinline__ inline
 #endif
 
 namespace mpcd {

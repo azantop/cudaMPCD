@@ -5,6 +5,10 @@
 
 #if defined(__CUDACC__) || defined(__NVCC__) // hide device functions from gcc
     #include "cuda_backend/gpu_utilities.hpp"
+#else
+    #define __host__
+    #define __device__
+    #define __forceinline__ inline
 #endif
 
 namespace mpcd {
@@ -21,8 +25,7 @@ namespace mpcd {
         Vector   mean_velocity,
                  centre_of_mass;
 
-    #if defined(__CUDACC__) || defined(__NVCC__) // hide device functions from gcc
-
+    #if defined(__CUDACC__) || defined(__NVCC__)
         __device__ void atomic_add(MPCCell const& rhs) {
             atomicAdd(&density, rhs.density);
 
@@ -43,6 +46,24 @@ namespace mpcd {
             return atomicAdd(&density, 1);
         }
 
+        __device__ void add_reduce_only(Vector const& velocity) {
+            atomicAdd( &density, 1 );
+            mean_velocity.atomicAdd( velocity );
+        }
+
+        __device__ void group_reduce(unsigned group_size) {
+            if (group_size > 1) {
+                density          = cuda::gpu_utilities::group_sum( density,         -1u, group_size );
+                mean_velocity.x  = cuda::gpu_utilities::group_sum( mean_velocity.x,  -1u, group_size );
+                mean_velocity.y  = cuda::gpu_utilities::group_sum( mean_velocity.y,  -1u, group_size );
+                mean_velocity.z  = cuda::gpu_utilities::group_sum( mean_velocity.z,  -1u, group_size );
+                centre_of_mass.x = cuda::gpu_utilities::group_sum( centre_of_mass.x, -1u, group_size );
+                centre_of_mass.y = cuda::gpu_utilities::group_sum( centre_of_mass.y, -1u, group_size );
+                centre_of_mass.z = cuda::gpu_utilities::group_sum( centre_of_mass.z, -1u, group_size );
+            }
+        }
+    #endif
+
         __device__ void unlocked_add(Particle const& particle) {
             density += 1;
             mean_velocity  += particle.velocity;
@@ -62,12 +83,6 @@ namespace mpcd {
             return mean_velocity;
         }
 
-
-        __device__ void add_reduce_only(Vector const& velocity) {
-            atomicAdd( &density, 1 );
-            mean_velocity.atomicAdd( velocity );
-        }
-
         __device__ void average_reduce_only() { if(density > 0) { mean_velocity = mean_velocity / density; }}
 
         __device__ void clear() {
@@ -75,20 +90,6 @@ namespace mpcd {
             mean_velocity  = {};
             centre_of_mass = {};
         }
-
-        __device__ void group_reduce(unsigned group_size) {
-            if (group_size > 1) {
-                density          = cuda::gpu_utilities::group_sum( density,         -1u, group_size );
-                mean_velocity.x  = cuda::gpu_utilities::group_sum( mean_velocity.x,  -1u, group_size );
-                mean_velocity.y  = cuda::gpu_utilities::group_sum( mean_velocity.y,  -1u, group_size );
-                mean_velocity.z  = cuda::gpu_utilities::group_sum( mean_velocity.z,  -1u, group_size );
-                centre_of_mass.x = cuda::gpu_utilities::group_sum( centre_of_mass.x, -1u, group_size );
-                centre_of_mass.y = cuda::gpu_utilities::group_sum( centre_of_mass.y, -1u, group_size );
-                centre_of_mass.z = cuda::gpu_utilities::group_sum( centre_of_mass.z, -1u, group_size );
-            }
-        }
-
-    #endif // hide from gcc
     };
 
     template<typename T>

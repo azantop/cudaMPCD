@@ -2,45 +2,44 @@
 
 #include "backend/backend.hpp"
 #include "cpu_backend/cpu_backend.hpp"
+#include "cpu_backend/simulation_functions.hpp"
 
 namespace mpcd::cpu {
 
-    void CPUBackend::translationStep() {
-        // TODO
-    }
-    void CPUBackend::collisionStep() {
-        // TODO
-    }
-
     CPUBackend::CPUBackend(SimulationParameters const& params) : Backend(params),
-                                                                 particles(params.N)
+                                                                 particles(params.N),
+                                                                 mpc_cells({params.volume_size[0], params.volume_size[1], params.volume_size[2]}),
+                                                                 cell_states(static_cast<size_t>(params.volume_size[0] * params.volume_size[1] * params.volume_size[2])),
+                                                                 kahan_c(cell_states.size()),
+                                                                 uniform_list(mpc_cells.size() * 4 * params.n),
+                                                                 uniform_counter(mpc_cells.size())
     {
+        distribute_particles(particles, mpc_cells, params, random);
+    }
 
-        std::cout << "Logging output:\n Volume size: " << params.volume_size[0] << "x" << params.volume_size[1] << "x" << params.volume_size[2] << std::endl;
-        std::cout << "n particles per cell: " << params.n << std::endl;
+    void CPUBackend::translationStep() {
+        grid_shift = {random.genUniformFloat() - Float(0.5),
+                      random.genUniformFloat() - Float(0.5),
+                      random.genUniformFloat() - Float(0.5)};
 
-        const int64_t vol_x = static_cast<int64_t>(params.volume_size[0]);
-        const int64_t vol_y = static_cast<int64_t>(params.volume_size[1]);
-        const int64_t vol_z = static_cast<int64_t>(params.volume_size[2]);
-        const int64_t n = static_cast<int64_t>(params.n);
+        uniform_counter.assign(uniform_counter.size(), 0);
+        translate_particles(particles, mpc_cells, random, grid_shift,
+                           {parameters.volume_size[0], parameters.volume_size[1], parameters.volume_size[2]},
+                           {parameters.periodicity[0], parameters.periodicity[1], parameters.periodicity[2]},
+                           parameters.delta_t, parameters.experiment, uniform_counter, uniform_list);
+    }
 
-        const int64_t total_cells = vol_x * vol_y * vol_z;
-        const int64_t total_particles = total_cells * n;
+    void CPUBackend::collisionStep() {
+        mpc_cells.set({});
 
-        std::cout << "Calculated total cells: " << total_cells << std::endl;
-        std::cout << "Calculated total particles: " << total_particles << std::endl;
-        std::cout << "About to allocate particles vector..." << std::endl;
-
-
-        mpcd::Vector scale = {params.volume_size[0], params.volume_size[1], params.volume_size[2]};
-        mpcd::IntVector perio = {params.periodicity[0], params.periodicity[1], params.periodicity[2]};
-        scale = scale + 2 * (1 - perio);
-
-        // Initialize particles
-        for (size_t i = 0; i < particles.size(); ++i) {
-            particles[i].position = {random.genUniformFloat(), random.genUniformFloat(), random.genUniformFloat()}; // uniform on the unit cube.
-            particles[i].position = (particles[i].position - mpcd::Float(0.5)).scaledWith(scale);  // rescale to the simulation volume
-            particles[i].velocity = random.maxwell_boltzmann() * params.thermal_velocity;
+        if (parameters.algorithm == MPCDAlgorithm::srd) {
+            srd_collision(particles, mpc_cells, random, grid_shift,
+                           {parameters.volume_size[0], parameters.volume_size[1], parameters.volume_size[2]},
+                           {parameters.periodicity[0], parameters.periodicity[1], parameters.periodicity[2]},
+                           parameters.delta_t, parameters.drag, parameters.thermal_velocity,
+                           parameters.n, uniform_counter, uniform_list);
+        } else {
+            // TODO
         }
     }
 
@@ -59,11 +58,53 @@ namespace mpcd::cpu {
     }
 
     void CPUBackend::stepAndAccumulateSample(int n_steps) {
-        // TODO
+        for (int i = 0; i < n_steps; ++i) {
+            step(1);
+
+            mpc_cells.set({}); // Clear cells
+            for (auto& particle : particles)
+                mpc_cells[particle.cell_idx].unlocked_add(particle);
+
+            for (auto& cell : mpc_cells)
+                cell.average_reduce_only();
+
+            if (sampling_state == SAMPLING_COMPLETED) {
+                sampling_state = SAMPLING_IN_PROGRESS;
+                sample_counter = 0;
+                kahan_c.assign(kahan_c.size(), {});
+                for (int j = 0; j < mpc_cells.size(); ++j) {
+                    cell_states[j].density = mpc_cells[j].density;
+                    cell_states[j].mean_velocity = mpc_cells[j].mean_velocity;
+                }
+            } else {
+                sample_counter++;
+                for (int j = 0; j < mpc_cells.size(); ++j) {
+                    {
+                        auto y = mpc_cells[j].density - kahan_c[j].density;
+                        auto t = cell_states[j].density + y;
+                        kahan_c[j].density = (t - cell_states[j].density) - y;
+                        cell_states[j].density = t;
+                    }
+                    auto y = mpc_cells[j].mean_velocity - kahan_c[j].mean_velocity;
+                    auto t = cell_states[j].mean_velocity + y;
+                    kahan_c[j].mean_velocity = (t - cell_states[j].mean_velocity) - y;
+                    cell_states[j].mean_velocity = t;
+                }
+            }
+        }
     }
 
     void CPUBackend::getSampleMean(std::vector<float>& mean_density, std::vector<float>& mean_velocity) {
-        // TODO
+        mean_density.resize(cell_states.size());
+        mean_velocity.resize(cell_states.size() * 3);
+        auto inverse = Float(1) / sample_counter;
+        for (size_t i = 0; i < cell_states.size(); i++) {
+            mean_density[i] = cell_states[i].density * inverse;
+            mean_velocity[i * 3 + 0] = cell_states[i].mean_velocity.x * inverse;
+            mean_velocity[i * 3 + 1] = cell_states[i].mean_velocity.y * inverse;
+            mean_velocity[i * 3 + 2] = cell_states[i].mean_velocity.z * inverse;
+        }
+        sampling_state = SAMPLING_COMPLETED;
     }
 
     size_t CPUBackend::getNParticles() {
