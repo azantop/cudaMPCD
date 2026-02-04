@@ -30,7 +30,7 @@ namespace mpcd::cpu {
         private:
 
         Vector edges, inverse_edges, shift;
-        uint32_t  x_size, y_size, z_size, xy_size;
+        uint32_t  x_size, y_size, z_size, xy_size, zy_size;
         std::vector<T> store;
 
 
@@ -61,11 +61,11 @@ namespace mpcd::cpu {
 
         bool im_volumen(Vector const& position) const { return (round(position.scaledWith(inverse_edges)) == 0); }
 
-        reference  operator[] (size_t const& idx)       { return store[ idx ]; }
-        value_type operator[] (size_t const& idx) const { return store[ idx ]; }
+        reference  operator[] (size_t const& idx)       { return store[idx]; }
+        value_type operator[] (size_t const& idx) const { return store[idx]; }
 
 
-        uint32_t get_index(Vector const& position) const {
+        inline uint32_t get_index(Vector const& position) const {
             uint32_t x = static_cast<uint32_t>(floorf(position.x + shift.x)) % x_size;
             uint32_t y = static_cast<uint32_t>(floorf(position.y + shift.y)) % y_size;
             uint32_t z = static_cast<uint32_t>(floorf(position.z + shift.z)) % z_size;
@@ -86,7 +86,7 @@ namespace mpcd::cpu {
             return Vector({Float(0.5) + (idx % x_size),
                         Float(0.5) + ((idx % xy_size) / x_size),
                         Float(0.5) + (idx / xy_size)})
-                    - shift;
+                        - shift;
         }
 
         Float get_z_idx(uint32_t const& idx) const{

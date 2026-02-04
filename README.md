@@ -19,7 +19,7 @@ In the current state, this code can be used to simulate a Poiseuille flow, i.e. 
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/azantop/cudaMPCD.git
 cd cudaMPCD
 ```
 

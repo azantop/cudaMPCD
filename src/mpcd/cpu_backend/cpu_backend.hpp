@@ -32,7 +32,6 @@ namespace mpcd::cpu {
         std::vector<uint32_t>          uniform_list,    // the index lookup
                                        uniform_counter; // next free table entry, used with atomicAdd.
 
-        //std::vector<Xoshiro128Plus>    generator;  // random number generators for the gpu
         Xoshiro128Plus                 random;     // random number generatofor the cpu
 
 
@@ -46,7 +45,6 @@ namespace mpcd::cpu {
         };
         SamplingState sampling_state;
         size_t        sample_counter;
-
 
         void translationStep();  // SRD streaming step
         void collisionStep();    // SRD collision step

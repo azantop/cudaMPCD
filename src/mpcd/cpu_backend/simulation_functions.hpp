@@ -23,4 +23,10 @@ namespace mpcd::cpu {
                                         mpcd::Vector volume_size, mpcd::IntVector periodicity, mpcd::Float delta_t,
                                         mpcd::Float drag, mpcd::Float thermal_velocity, uint32_t n_density,
                                         std::vector<uint32_t>& uniform_counter, std::vector<uint32_t>& uniform_list);
+
+    void extended_collision(std::vector<Particle>& particles, VolumeContainer<MPCCell>& mpc_cells,
+                                        Xoshiro128Plus& random, mpcd::Vector grid_shift,
+                                        mpcd::Vector volume_size, mpcd::IntVector periodicity, mpcd::Float delta_t,
+                                        mpcd::Float drag, mpcd::Float thermal_velocity, uint32_t n_density,
+                                        std::vector<uint32_t>& uniform_counter, std::vector<uint32_t>& uniform_list);
 }

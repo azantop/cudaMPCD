@@ -16,7 +16,7 @@ namespace mpcd {
             std::cout << "Creating CUDA backend" << std::endl;
             return std::make_unique<cuda::CudaBackend>(params);
         } else if (backend_type == "cpu") {
-            std::cout << "Creating preliminary CPU backend" << std::endl;
+            std::cout << "Creating CPU backend (WARNING: CPU backend is not fully supported)" << std::endl;
             return std::make_unique<cpu::CPUBackend>(params);
         } else {
             throw std::runtime_error("Unsupported backend type");

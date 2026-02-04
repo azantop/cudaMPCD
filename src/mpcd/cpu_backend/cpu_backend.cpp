@@ -12,7 +12,11 @@ namespace mpcd::cpu {
                                                                  cell_states(static_cast<size_t>(params.volume_size[0] * params.volume_size[1] * params.volume_size[2])),
                                                                  kahan_c(cell_states.size()),
                                                                  uniform_list(mpc_cells.size() * 4 * params.n),
-                                                                 uniform_counter(mpc_cells.size())
+                                                                 uniform_counter(mpc_cells.size()),
+                                                                 step_counter(0),
+                                                                 resort_rate(1000),
+                                                                 sampling_state(SAMPLING_COMPLETED),
+                                                                 sample_counter(0)
     {
         distribute_particles(particles, mpc_cells, params, random);
     }
@@ -32,14 +36,23 @@ namespace mpcd::cpu {
     void CPUBackend::collisionStep() {
         mpc_cells.set({});
 
-        if (parameters.algorithm == MPCDAlgorithm::srd) {
-            srd_collision(particles, mpc_cells, random, grid_shift,
-                           {parameters.volume_size[0], parameters.volume_size[1], parameters.volume_size[2]},
-                           {parameters.periodicity[0], parameters.periodicity[1], parameters.periodicity[2]},
-                           parameters.delta_t, parameters.drag, parameters.thermal_velocity,
-                           parameters.n, uniform_counter, uniform_list);
-        } else {
-            // TODO
+        switch (parameters.algorithm) {
+            case MPCDAlgorithm::srd:
+                srd_collision(particles, mpc_cells, random, grid_shift,
+                              {parameters.volume_size[0], parameters.volume_size[1], parameters.volume_size[2]},
+                              {parameters.periodicity[0], parameters.periodicity[1], parameters.periodicity[2]},
+                              parameters.delta_t, parameters.drag, parameters.thermal_velocity,
+                              parameters.n, uniform_counter, uniform_list);
+                break;
+            case MPCDAlgorithm::extended:
+                extended_collision(particles, mpc_cells, random, grid_shift,
+                                       {parameters.volume_size[0], parameters.volume_size[1], parameters.volume_size[2]},
+                                       {parameters.periodicity[0], parameters.periodicity[1], parameters.periodicity[2]},
+                                       parameters.delta_t, parameters.drag, parameters.thermal_velocity,
+                                       parameters.n, uniform_counter, uniform_list);
+                break;
+            default:
+                throw std::runtime_error("Unsupported MPCD algorithm");
         }
     }
 
@@ -62,8 +75,10 @@ namespace mpcd::cpu {
             step(1);
 
             mpc_cells.set({}); // Clear cells
-            for (auto& particle : particles)
-                mpc_cells[particle.cell_idx].unlocked_add(particle);
+            for (auto& particle : particles) {
+                mpc_cells[particle.position].density += 1;
+                mpc_cells[particle.position].mean_velocity += particle.velocity;
+            }
 
             for (auto& cell : mpc_cells)
                 cell.average_reduce_only();
@@ -97,8 +112,8 @@ namespace mpcd::cpu {
     void CPUBackend::getSampleMean(std::vector<float>& mean_density, std::vector<float>& mean_velocity) {
         mean_density.resize(cell_states.size());
         mean_velocity.resize(cell_states.size() * 3);
-        auto inverse = Float(1) / sample_counter;
-        for (size_t i = 0; i < cell_states.size(); i++) {
+        auto inverse = 1.0 / sample_counter;
+        for (size_t i = 0; i < cell_states.size(); ++i) {
             mean_density[i] = cell_states[i].density * inverse;
             mean_velocity[i * 3 + 0] = cell_states[i].mean_velocity.x * inverse;
             mean_velocity[i * 3 + 1] = cell_states[i].mean_velocity.y * inverse;
