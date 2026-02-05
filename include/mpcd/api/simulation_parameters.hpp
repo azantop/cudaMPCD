@@ -16,21 +16,20 @@ namespace mpcd {
 
     struct SimulationParameters
     {
-        ExperimentType experiment;
-        MPCDAlgorithm  algorithm;
+        ExperimentType experiment = ExperimentType::standart;
+        MPCDAlgorithm  algorithm = MPCDAlgorithm::extended;
 
-        std::array<int, 3>   periodicity;
-        std::array<float, 3> volume_size;
+        std::array<int, 3>   periodicity = {1, 1, 1};
+        std::array<float, 3> volume_size = {10.0f, 10.0f, 10.0f};
 
         unsigned int N, // number of particles
-                     n, // number of particles per cell
+                     n = 10, // number of particles per cell
                      device_id = 0;
 
-        float       delta_t, // SRD time step
-                    temperature, // fluid temperature
-                    thermal_velocity,
-                    drag, // pressure drag force applied for poiseuille flow
-                    thermal_sigma;
+        float       delta_t = 0.01f, // SRD time step
+                    temperature = 1.0f, // fluid temperature
+                    thermal_velocity = 1.0f,
+                    drag = 0.0f; // pressure drag force applied for poiseuille flow
 
         // parameters used in c++ simulator routine:
         unsigned int equilibration_steps,

@@ -269,7 +269,7 @@ namespace mpcd::cpu {
             if (n_particles > 1) {
                 ///////////////////////////
                 ///
-                #if 0 // discrete axis set or continuous random vector
+                #if 1 // discrete axis set or continuous random vector
                 int constexpr steps = 4; // discretization. careful: avoid overweight of theta = 0 pole with step phi cases...
 
                 float theta, phi; // chose discretized random direction:

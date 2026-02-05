@@ -110,10 +110,9 @@ PYBIND11_MODULE(_pympcd, m) {
                         if (t.size() != 3)
                             throw std::runtime_error("Expected 3 elements");
 
-                        p.volume_size[0] = t[0].cast<float>();
-                        p.volume_size[1] = t[1].cast<float>();
-                        p.volume_size[2] = t[2].cast<float>();
                         for (int i = 0; i < 3; ++i) {
+                            p.volume_size[i] = t[i].cast<float>();
+
                             if (p.periodicity[i] == 0)
                                 p.volume_size[i] += 2; // add wall layer
                         }
@@ -134,12 +133,12 @@ PYBIND11_MODULE(_pympcd, m) {
                     [](SimulationParameters &p, py::tuple t) {
                         if (t.size() != 3)
                             throw std::runtime_error("Expected 3 elements");
-                        p.periodicity[0] = t[0].cast<int>();
-                        p.periodicity[1] = t[1].cast<int>();
-                        p.periodicity[2] = t[2].cast<int>();
+
                         for (int i = 0; i < 3; ++i) {
-                            if (p.periodicity[i] == 0)
-                                p.volume_size[i] += 2; // add wall layer
+                            p.periodicity[i] = t[i].cast<int>();
+
+                            if (p.periodicity[i] == 0 and p.volume_size[i] != 0)
+                                p.volume_size[i] += 2; // add wall layer if initialized
                         }
                         p.N = p.n * (p.volume_size[0] - 2 * (1 - p.periodicity[0])) *
                                     (p.volume_size[1] - 2 * (1 - p.periodicity[1])) *

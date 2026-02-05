@@ -1,41 +1,9 @@
 # cudaMPCD
-Fast hydrodynamic solver for GPUS using the method of multi-particle collision dynamics in C++/CUDA.
-For configuring the simulation after compilation using the make command, modify the input_file.     
-In the current state, this code can be used to simulate a Poiseuille flow, i.e. a flow between to parallel plates.
-
-## Installation
-
-### Prerequisites
-
-- CMake (version 3.12 or higher)
-- Ninja
-- CUDA-capable GPU and NVIDIA CUDA Toolkit
-- C++ compiler with C++14 support or higher
-- Python 3.6+ with development headers
-- pybind11
-- NumPy
-
-### Building and Installing
-
-1. Clone the repository:
-```bash
-git clone https://github.com/azantop/cudaMPCD.git
-cd cudaMPCD
-```
-
-2. use pip to install the package:
-```bash
-pip install .
-```
-
-3. For running simulations with standalone binary use Cmake:
-```bash
-mkdir build
-cd build
-cmake ..
-cmake --build .
-cmake --install .
-```
+Fast hydrodynamic solver using the method of multi-particle collision dynamics.
+Frontend in python using pybind11 with backend implemented in C++/CUDA.     
+In the current state, this code can be used to simulate a Poiseuille flow, i.e. a flow between to parallel plates. This can be used for viscosity measurements. 
+The code has implementations of 2 collision operators: standard stochastic rotation dynamics (algorithm = srd) and extended MPC with non-ideal equation-of-state (algorithm = extended).
+The current implementation was tuned for older GTX 1080Ti and Quadro RTX 6000 cards. 
 
 ## Usage
 
@@ -64,7 +32,6 @@ sim.step_and_sample(100000)
 density, velocity = sim.get_mean_fields()
 ```
 
-## Testing
 The Poiseuille flow is a geometry for which the Navier-Stokes equations can be solved analytically. 
 Thus, we can use this geometry for testing the code.
 After the simulation, we may use the flow field data as follows:
@@ -96,6 +63,42 @@ print( "theoretical: ", eta_theo, ", measured:", eta )
 ```
 The last line prints the two values of the fluid viscosity "theoretical: 37.50, measured: 37.27"
 
+## Installation
+
+### Prerequisites
+
+#### Required:
+- CMake (version 3.12 or higher)
+- C++ compiler with C++14 support or higher
+
+#### Optional:
+- CUDA-capable GPU and NVIDIA CUDA Toolkit
+- Python 3.6+ with development headers
+- pybind11
+- NumPy
+
+### Building and Installing
+
+1. Clone the repository:
+```bash
+git clone https://github.com/azantop/cudaMPCD.git
+cd cudaMPCD
+```
+
+2. use pip to install the package:
+```bash
+pip install .
+```
+
+3. For running simulations with standalone binary use Cmake:
+```bash
+mkdir build
+cd build
+cmake ..
+cmake --build .
+cmake --install .
+```
+
 If you find this repository helpful, please consider citing our article (doi.org/10.1063/5.0037934)
 ```
 @article{zantop2021multi,
@@ -109,7 +112,3 @@ If you find this repository helpful, please consider citing our article (doi.org
   publisher={AIP Publishing LLC}
 }
 ```
-
-Dependencies: CUDA, HDF5
-
-TODO: add references (papers)
