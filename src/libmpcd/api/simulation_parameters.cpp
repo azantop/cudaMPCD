@@ -4,11 +4,10 @@
 #include <sys/stat.h>
 
 #include <cassert>
+#include <cmath>
 #include <string>
 #include <fstream>
 #include <iostream>
-
-#include <cuda_runtime_api.h>
 
 #include <mpcd/api/simulation_parameters.hpp>
 

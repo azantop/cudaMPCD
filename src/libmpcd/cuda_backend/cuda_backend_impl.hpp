@@ -1,0 +1,83 @@
+#pragma once
+
+#include <mpcd/api/simulation_parameters.hpp>
+
+#include "common/vector_3d.hpp"
+#include "common/particle.hpp"
+#include "common/mpc_cell.hpp"
+#include "common/random.hpp"
+#include "gpu_arrays.hpp"
+#include "device_volume_container.hpp"
+
+namespace mpcd::cuda {
+
+    class CudaBackendImpl
+    {
+        using Vector = mpcd::Vector;
+        using Float  = mpcd::Float;
+
+        SimulationParameters             parameters;
+        UnifiedVector<Particle>          particles;   // SRD fluid particles
+        DeviceVector<Particle>           particles_sorted; // use for gpu sorting later
+
+        Vector                           grid_shift;  // SRD grid shift
+
+        DeviceVolumeContainer<MPCCell>   mpc_cells;   // SRD cell storage
+        UnifiedVector<FluidState>        cell_states, // for averaging over the fluid state
+                                         kahan_c; // cache for kahan summation
+
+        // The indices for fluid particles are stored in a lookup table for the collision step.
+        // This optimizes the data througput, because particles can be stored in shared memory
+        // and only need to be loaded once:
+        DeviceVector<uint32_t>           uniform_list,    // the index lookup
+                                         uniform_counter; // next free table entry, used with atomicAdd.
+
+        DeviceVector<Xoshiro128Plus>     generator;  // random number generators for the gpu
+        xorshift1024star                 random;     // random number generatofor the cpu
+
+        // To furthe optimize memory loading, the particle array is sorted according to the SRD cell-index.
+        // This enables array striding, ie. coalesced memory loading:
+        size_t step_counter, resort_rate;
+
+        enum SamplingState {
+            SAMPLING_IN_PROGRESS,
+            SAMPLING_COMPLETED
+        };
+        SamplingState sampling_state;
+        size_t sample_counter;
+
+        struct {
+            size_t block_size,
+                block_count,
+                multiprocessors,
+                shared_bytes,
+                sharing_blocks,
+                internal_step_counter,
+                resort_rate;
+        } cuda_config;
+
+        void translationStep();  // SRD streaming step
+        void collisionStep();    // SRD collision step
+
+        public:
+
+        // routines:
+        CudaBackendImpl(SimulationParameters const&);  // initialization
+        ~CudaBackendImpl();  // cleanup
+
+        // data io:
+        void writeSample();
+        void writeBackupFile();
+
+        // backend overrides:
+        void step(int n_steps);
+        void stepAndAccumulateSample(int n_steps);
+        void getSampleMean(std::vector<float>& mean_density, std::vector<float>& mean_velocity);
+        size_t getNParticles();
+        void getParticlePositions(std::vector<float>& positions);
+        void getParticleVelocities(std::vector<float>& velocities);
+        void setParticlePositions(std::vector<float> const& positions);
+        void setParticleVelocities(std::vector<float> const& velocities);
+        void setParticles(std::vector<float> const& positions, std::vector<float> const& velocities);
+    };
+} // namespace mpcd::cuda

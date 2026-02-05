@@ -1,6 +1,5 @@
 #include <mpcd/api/simulation_parameters.hpp>
 
-#include "backend/backend.hpp"
 #include "cpu_backend/cpu_backend.hpp"
 #include "cpu_backend/simulation_functions.hpp"
 

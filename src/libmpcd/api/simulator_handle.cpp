@@ -1,7 +1,7 @@
 #include <mpcd/api/simulation_handle.hpp>
 #include <mpcd/api/simulation_parameters.hpp>
 
-#include "backend/backend.hpp"
+#include "common/backend.hpp"
 #include "common/backend_factory.hpp"
 
 namespace mpcd::api {

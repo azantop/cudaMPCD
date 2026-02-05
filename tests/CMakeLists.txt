@@ -6,12 +6,12 @@ include(GoogleTest)
 function(add_cpp_test test_name)
     add_executable(${test_name} ${ARGN})
     target_include_directories(${test_name}
-        PRIVATE ${CMAKE_SOURCE_DIR}/src/mpcd
+        PRIVATE ${CMAKE_SOURCE_DIR}/src/libmpcd
         PUBLIC ${CMAKE_SOURCE_DIR}/include
     )
     target_link_libraries(${test_name}
         PRIVATE
-        simulator_backend
+        cpu_backend
         GTest::gtest_main
     )
     target_compile_features(${test_name} PRIVATE cxx_std_17)
@@ -20,19 +20,21 @@ endfunction()
 
 # Helper function for CUDA tests
 function(add_cuda_test test_name)
-    add_executable(${test_name} ${ARGN})
-    target_include_directories(${test_name}
-        PRIVATE ${CMAKE_SOURCE_DIR}/src/mpcd
-        PUBLIC ${CMAKE_SOURCE_DIR}/include
-    )
-    target_link_libraries(${test_name}
-        PRIVATE
-        simulator_backend
-        GTest::gtest_main
-    )
-    target_compile_features(${test_name} PRIVATE cxx_std_17)
-    set_property(TARGET ${test_name} PROPERTY CUDA_ARCHITECTURES 70 75 80)
-    gtest_discover_tests(${test_name})
+    if(CUDAToolkit_FOUND)
+        add_executable(${test_name} ${ARGN})
+        target_include_directories(${test_name}
+            PRIVATE ${CMAKE_SOURCE_DIR}/src/libmpcd
+            PUBLIC ${CMAKE_SOURCE_DIR}/include
+        )
+        target_link_libraries(${test_name}
+            PRIVATE
+            cuda_backend
+            GTest::gtest_main
+        )
+        target_compile_features(${test_name} PRIVATE cxx_std_17)
+        set_property(TARGET ${test_name} PROPERTY CUDA_ARCHITECTURES 70 75 80)
+        gtest_discover_tests(${test_name})
+    endif()
 endfunction()
 
 # Unit tests for vector operations

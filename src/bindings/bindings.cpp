@@ -58,11 +58,12 @@ PYBIND11_MODULE(_pympcd, m) {
             auto const& parameters = self.getParameters();
 
             // Construct shape and strides of 3D voxel arrays:
-            ssize_t x = parameters.volume_size[0], y = parameters.volume_size[1], z = parameters.volume_size[2];
-            std::vector<ssize_t> shape = {x, y, z},
-                                 strides = {sizeof(float), y * sizeof(float), x * y * sizeof(float)};
+            ssize_t x = parameters.volume_size[0], y = parameters.volume_size[1], z = parameters.volume_size[2],
+                    sf = static_cast<ssize_t>(sizeof(float));
+            std::vector<ssize_t> shape = {x, y, z}, strides = {sf, y * sf, x * y * sf};
 
             auto density_np = vector_to_numpy(std::move(density), shape, strides);
+
             std::for_each(strides.begin(), strides.end(), [](ssize_t &stride) { stride *= 3; });
             strides.push_back(sizeof(float));
             shape.push_back(3);

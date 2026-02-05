@@ -2,10 +2,12 @@
 #include <string>
 
 #include <mpcd/api/simulation_parameters.hpp>
-
-#include "cuda_backend.hpp"
-#include "adapters/hdf5/h5cpp.hpp"
+#ifdef USE_HDF5
+    #include "adapters/hdf5/h5cpp.hpp"
+#endif
 #include "common/probing.hpp"
+
+#include "cuda_backend_impl.hpp"
 #include "simulation_kernels.hpp"
 #include "extended_collision.hpp"
 
@@ -13,7 +15,7 @@ namespace mpcd::cuda {
     /**
     *   @brief Initialize the GPU and the SRD fluid
     */
-    CudaBackend::CudaBackend(SimulationParameters const& params) : Backend([&]{ cudaSetDevice(params.device_id); return params; }()),
+    CudaBackendImpl::CudaBackendImpl(SimulationParameters const& params) : parameters([&]{ cudaSetDevice(params.device_id); return params; }()),
                                                                    particles(static_cast<size_t>(params.volume_size[0] * params.volume_size[1] * params.volume_size[2] * params.n)),
                                                                    particles_sorted(0),
                                                                    mpc_cells({params.volume_size[0], params.volume_size[1], params.volume_size[2]}),
@@ -101,19 +103,28 @@ namespace mpcd::cuda {
         error_check( "distribute_particles" );
         std::cout << "gpu initialized ..." << std::endl;
 
-        // create output file
+    #ifdef USE_HDF5
+        // Create output file
         mpcd::adapters::hdf5::file data( "simulation_data.h5", "rw" );
         data.create_group( "fluid" );
+    #else
+        // No backend output, use pybind11 frontend
+    #endif
     }
 
-    CudaBackend::~CudaBackend() {
+    CudaBackendImpl::~CudaBackendImpl() {
         cudaDeviceSynchronize();
     }
     /**
     *   @brief Data io, either creating snapshots or averaging and writing to disk.
     */
-    void CudaBackend::writeSample()
+    void CudaBackendImpl::writeSample()
     {
+    #ifndef USE_HDF5
+        std::cerr << "Backend compiled without HDF5 support. No output possible." << std::endl;
+        throw std::runtime_error("No HDF5 support");
+    #endif
+
         ProbingType probe = what_to_do(step_counter, parameters);
 
         mpc_cells.set( 0 ); // clear cells.
@@ -146,22 +157,23 @@ namespace mpcd::cuda {
 
         if (probe == ProbingType::finish_accumulation or probe == ProbingType::snapshots_only) {
             cell_states.pull();
+        #ifdef USE_HDF5
             mpcd::adapters::hdf5::file data( "simulation_data.h5", "a" ); // append
             data.write_float_data(std::string("fluid/") + std::to_string(step_counter), reinterpret_cast<float*>(cell_states.data()),
                                 {4, static_cast<size_t>(parameters.volume_size[0]), static_cast<size_t>(parameters.volume_size[1]),
                                 static_cast<size_t>(parameters.volume_size[2])});
+        #endif
         }
     }
 
-    void CudaBackend::writeBackupFile()
-    {
+    void CudaBackendImpl::writeBackupFile() {
         // TODO
     }
 
     /**
     *   @brief Perform SRD streaming step
     */
-    void CudaBackend::translationStep() {
+    void CudaBackendImpl::translationStep() {
         grid_shift = {random.genUniformFloat() - mpcd::Float(0.5),
                     random.genUniformFloat() - mpcd::Float(0.5),
                     random.genUniformFloat() - mpcd::Float(0.5)};
@@ -178,7 +190,7 @@ namespace mpcd::cuda {
     /**
     *   @brief Perform SRD collision step
     */
-    void CudaBackend::collisionStep() {
+    void CudaBackendImpl::collisionStep() {
         mpc_cells.set(0);
 
         switch (parameters.algorithm) {
@@ -204,7 +216,7 @@ namespace mpcd::cuda {
 
     // Backend operations overrides
 
-    void CudaBackend::step(int n_steps) {
+    void CudaBackendImpl::step(int n_steps) {
         for (int i = 0; i < n_steps; i++) {
             // MPC steps:
             translationStep();
@@ -219,11 +231,11 @@ namespace mpcd::cuda {
         }
     }
 
-    size_t CudaBackend::getNParticles() {
+    size_t CudaBackendImpl::getNParticles() {
         return particles.size();
     }
 
-    void CudaBackend::getParticlePositions(std::vector<float>& positions) {
+    void CudaBackendImpl::getParticlePositions(std::vector<float>& positions) {
         particles.pull();
         positions.resize(particles.size() * 3);
         for (size_t i = 0; i < particles.size(); i++) {
@@ -233,7 +245,7 @@ namespace mpcd::cuda {
         }
     }
 
-    void CudaBackend::getParticleVelocities(std::vector<float>& velocities) {
+    void CudaBackendImpl::getParticleVelocities(std::vector<float>& velocities) {
         particles.pull();
         velocities.resize(particles.size() * 3);
         for (size_t i = 0; i < particles.size(); i++) {
@@ -243,7 +255,7 @@ namespace mpcd::cuda {
         }
     }
 
-    void CudaBackend::setParticlePositions(std::vector<float> const& positions) {
+    void CudaBackendImpl::setParticlePositions(std::vector<float> const& positions) {
         particles.pull();
         for (size_t i = 0; i < positions.size(); i += 3) {
             particles[i].position = {positions[i], positions[i+1], positions[i+2]};
@@ -251,7 +263,7 @@ namespace mpcd::cuda {
         particles.push();
     }
 
-    void CudaBackend::setParticleVelocities(std::vector<float> const& velocities) {
+    void CudaBackendImpl::setParticleVelocities(std::vector<float> const& velocities) {
         particles.pull();
         for (size_t i = 0; i < velocities.size(); i += 3) {
             particles[i].velocity = {velocities[i], velocities[i+1], velocities[i+2]};
@@ -259,7 +271,7 @@ namespace mpcd::cuda {
         particles.push();
     }
 
-    void CudaBackend::setParticles(std::vector<float> const& positions, std::vector<float> const& velocities) {
+    void CudaBackendImpl::setParticles(std::vector<float> const& positions, std::vector<float> const& velocities) {
         particles.pull();
         for (size_t i = 0; i < positions.size(); i += 3) {
             particles[i].position = {positions[i], positions[i+1], positions[i+2]};
@@ -269,7 +281,7 @@ namespace mpcd::cuda {
 
     }
 
-    void CudaBackend::stepAndAccumulateSample(int n_steps) {
+    void CudaBackendImpl::stepAndAccumulateSample(int n_steps) {
         for (int i = 0; i < n_steps; i++) {
             step(1);
 
@@ -293,7 +305,7 @@ namespace mpcd::cuda {
         }
     }
 
-    void CudaBackend::getSampleMean(std::vector<float>& mean_density, std::vector<float>& mean_velocity) {
+    void CudaBackendImpl::getSampleMean(std::vector<float>& mean_density, std::vector<float>& mean_velocity) {
         cell_states.pull();
         mean_density.resize(cell_states.size());
         mean_velocity.resize(cell_states.size() * 3);
