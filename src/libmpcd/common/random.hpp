@@ -34,10 +34,9 @@ namespace mpcd {
         bool     generate_d = {};
         double   z1_d;
 
-        Xoshiro128Plus( Xoshiro128Plus && )     = default;
-        Xoshiro128Plus( Xoshiro128Plus const& ) = default;
-        Xoshiro128Plus()
-        {
+        Xoshiro128Plus(Xoshiro128Plus &&)     = default;
+        Xoshiro128Plus(Xoshiro128Plus const&) = default;
+        Xoshiro128Plus() {
             std::ifstream urandom( "/dev/urandom" ); // open/read from random device (unix)
 
             if ( !urandom )
@@ -46,11 +45,10 @@ namespace mpcd {
             urandom.read( (char*) &s , 2 * sizeof(uint64_t) );
         }
 
-        inline Xoshiro128Plus& operator = ( Xoshiro128Plus const& ) = default;
-        inline Xoshiro128Plus& operator = ( Xoshiro128Plus && )     = default;
+        inline Xoshiro128Plus& operator = (Xoshiro128Plus const&) = default;
+        inline Xoshiro128Plus& operator = (Xoshiro128Plus &&)     = default;
 
-        __host__ __device__ inline uint32_t rotl( uint32_t const& x, int const& k)
-        {
+        __host__ __device__ inline uint32_t rotl( uint32_t const& x, int const& k) {
             return (x << k) | (x >> (32 - k));
         }
 
@@ -58,20 +56,18 @@ namespace mpcd {
         *  @brief On the gpu the gaussian random number produced by each thread my be different in number.
         *      Hence, call this function frequently, to avoid brach divergence in the gaussianf() and gaussian() functions.
         */
-        __host__ __device__ void sync_phase()
-        {
+        __host__ __device__ void sync_phase() {
             generate_f = 0x0;
         }
 
         /**
         *  @brief seed the RNG, according to the authors
         */
-        __host__ __device__ void seed( uint64_t a, uint64_t b )
-        {
-            s[ 0 ] = a >> 0x2;
-            s[ 1 ] = b;
-            s[ 2 ] = b >> 0x2;
-            s[ 3 ] = a;
+        __host__ __device__ void seed(uint64_t a, uint64_t b) {
+            s[0] = a >> 0x2;
+            s[1] = b;
+            s[2] = b >> 0x2;
+            s[3] = a;
 
             z1_f          = {};
             generate_f    = {};
@@ -81,8 +77,7 @@ namespace mpcd {
         *  @brief basic algorithm to generate a random number.
         *      All other methods derive from this.
         */
-        __host__ __device__ uint32_t operator()()
-        {
+        __host__ __device__ uint32_t operator()() {
             const uint32_t result_plus = s[0] + s[3];
             const uint32_t t = s[1] << 9;
 
@@ -99,20 +94,17 @@ namespace mpcd {
         /**
         *  @brief jump forward in the RNG sequence.
         */
-        __host__ __device__ void jump()
-        {
-            static const uint32_t JUMP[] = { 0x8764000b, 0xf542d2d3, 0x6fa035c3, 0x77f2db5b };
+        __host__ __device__ void jump() {
+            static const uint32_t JUMP[] = {0x8764000b, 0xf542d2d3, 0x6fa035c3, 0x77f2db5b};
 
             uint32_t s0 = 0;
             uint32_t s1 = 0;
             uint32_t s2 = 0;
             uint32_t s3 = 0;
 
-            for ( int i = 0; i < static_cast< int >( sizeof( JUMP ) / sizeof( *JUMP ) ); ++i )
-                for ( int b = 0; b < 32; ++b )
-                {
-                    if ( JUMP[i] & UINT32_C(1) << b )
-                    {
+            for (int i = 0; i < static_cast<int>(sizeof(JUMP) / sizeof(*JUMP)); ++i)
+                for (int b = 0; b < 32; ++b) {
+                    if (JUMP[i] & UINT32_C(1) << b) {
                         s0 ^= s[0];
                         s1 ^= s[1];
                         s2 ^= s[2];
@@ -131,25 +123,22 @@ namespace mpcd {
         /**
         *   @brief produce random fload uniformly distributed on the interval [ 0, 1 )
         */
-        __host__ __device__ float genUniformFloat()
-        {
-            return ( static_cast<float>( operator()() )
-                    * ( 1.0f / static_cast< float >( UINT32_MAX ) ) );
+        __host__ __device__ float genUniformFloat() {
+            return (static_cast<float>(operator()())
+                    * (1.0f / static_cast<float>(UINT32_MAX)));
         }
 
         /**
         *   @brief produce random int uniformly distributed on the interval [ min, max ]
         */
-        __host__ __device__ int genUniformInt( int min , int max )
-        {
-            return ( static_cast< int >( operator()() / 2 ) % ( max - min + 1 ) + min );
+        __host__ __device__ int genUniformInt(int min, int max) {
+            return (static_cast<int>(operator()() / 2) % (max - min + 1) + min);
         }
 
         /**
         *   @brief produce random float accoring to normal distribution using Bux-Muller
         */
-        __host__ __device__ float gaussianf()
-        {
+        __host__ __device__ float gaussianf() {
             generate_f = !generate_f;
 
             if ( !generate_f )
@@ -160,49 +149,48 @@ namespace mpcd {
             #else
                 float u1 = logf( genUniformFloat() + FLT_MIN );
             #endif
-            float u2 = ( static_cast< float >( operator()() )
-                    * ( 2.0f *  static_cast< float >( M_PI )
-                        / static_cast< float >( UINT32_MAX ) ) );
+            float u2 = (static_cast<float>(operator()())
+                    * (2.0f / static_cast<float>(UINT32_MAX)));
 
             #if defined(__CUDA_ARCH__)
-                __sincosf(u2, &z1_f, &u2);
+                sincospif(u2, &z1_f, &u2);
             #else
-                sincosf(u2, &z1_f, &u2);
+                z1_f = sinf(u2 * float(M_PI));
+                u2 = cosf(u2 * float(M_PI));
             #endif
 
-                z1_f *= sqrtf( -2 * u1 );
-            return u2 * sqrtf( -2 * u1 );
+                z1_f *= sqrtf(-2 * u1);
+            return u2 * sqrtf(-2 * u1);
         }
 
         /**
         *   @brief produce random double accoring to normal distribution using Bux-Muller
         */
-        __host__ __device__ double gaussian()
-        {
+        __host__ __device__ double gaussian() {
             generate_d = !generate_d;
 
-            if ( !generate_d )
+            if (!generate_d)
             return z1_d;
 
-            double u1 = log( genUniformFloat() + FLT_MIN ),
-                u2 = operator()() * ( 2.0 / UINT32_MAX );
+            double u1 = log(genUniformFloat() + FLT_MIN),
+                   u2 = operator()() * (2.0 / UINT32_MAX);
 
         #if defined(__CUDA_ARCH__)
-            sincospi( u2, &z1_d, &u2 );
+            sincospi(u2, &z1_d, &u2);
         #else
-            sincos( 2 * M_PI * u2 , &z1_d, &u2 );
+            z1_d = sin(u2 * M_PI);
+            u2 = cos(u2 * M_PI);
         #endif
 
-                z1_d *= sqrt( -2 * u1 );
-            return u2 * sqrt( -2 * u1 );
+                z1_d *= sqrt(-2 * u1);
+            return u2 * sqrt(-2 * u1);
         }
 
         /**
         *   @brief produce random fload accoring to the gamma distribution using the method
         *          taken from the gnu scientific library, assuming a > 0
         */
-        __host__ __device__ float gamma(Float const& a, Float const& b)
-        {
+        __host__ __device__ float gamma(Float const& a, Float const& b) {
             if ( a < 1 ) {
                 Float u = genUniformFloat();
             #if defined(__CUDA_ARCH__)
@@ -210,9 +198,7 @@ namespace mpcd {
             #else
                 return gamma(1 + a, b) * powf(u, 1 / a);
             #endif
-            }
-            else
-            {
+            } else {
                 Float x, v, u;
                 Float d = a - Float(1.0 / 3.0);
             #if defined(__CUDA_ARCH__)
@@ -221,14 +207,10 @@ namespace mpcd {
                 Float c = Float(1.0 / 3.0) / sqrtf(d);
             #endif
 
-                for ( ;; )
-                {
-                    //do
-                    //{
-                        x = gaussianf();
+                for (;;) {
+                    x = gaussianf();
                         v = Float(1.0) + c * x;
 
-                    //} while ( v <= 0 );
                     if (v <= 0)
                         v = Float(1.0) - c * x;
 
@@ -252,12 +234,10 @@ namespace mpcd {
         /**
         *  @brief generate a random vector on the unit sphere.
         */
-        __host__ __device__ mpcd::Vector genUnitVector()
-        {
+        __host__ __device__ mpcd::Vector genUnitVector() {
             float rsq = 2.0, rd1, rd2;
 
-            do
-            {
+            do {
                 rd1 = 1.0f - 2.0f * genUniformFloat();
                 rd2 = 1.0f - 2.0f * genUniformFloat();
                 rsq = rd1 * rd1 + rd2 * rd2;
@@ -269,11 +249,11 @@ namespace mpcd {
         #else
             float rdh = 2.0f * sqrtf( 1.0f - rsq );
         #endif
-            return { rd1 * rdh, rd2 * rdh, ( 1.0f - 2.0f * rsq ) };
+            return {rd1 * rdh, rd2 * rdh, ( 1.0f - 2.0f * rsq )};
         }
 
         __host__ __device__ mpcd::Vector maxwell_boltzmann() {
-            return { gaussianf(), gaussianf(), gaussianf() };
+            return {gaussianf(), gaussianf(), gaussianf()};
         }
     };
 

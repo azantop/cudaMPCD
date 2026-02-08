@@ -1,6 +1,22 @@
+find_package(HDF5 COMPONENTS CXX)
+if(HDF5_FOUND)
+    add_compile_definitions(USE_HDF5=1)
+    include_directories(include PUBLIC ${HDF5_INCLUDE_DIRS})
+    message(STATUS "HDF5 found - enabling HDF5 support")
+else()
+    message(STATUS "HDF5 not found - disabling HDF5 support")
+endif()
+
 add_subdirectory(cpu_backend)
+
+find_package(CUDAToolkit)
 if(CUDAToolkit_FOUND)
+    enable_language(CUDA)
+    add_compile_definitions(USE_CUDA=1)
+    message(STATUS "CUDA ${CUDAToolkit_VERSION} found - enabling CUDA backend")
     add_subdirectory(cuda_backend)
+else()
+    message(STATUS "CUDA not found - disabling CUDA backend")
 endif()
 
 add_library(mpcd_backend SHARED

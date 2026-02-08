@@ -1,5 +1,5 @@
 # cudaMPCD
-Fast hydrodynamic solver using the method of multi-particle collision dynamics. Frontend in python using pybind11 with backend implemented in C++/CUDA. In the current state, this code can be used to simulate a Poiseuille flow, i.e. a flow between to parallel plates. This can be used for viscosity measurements. The code has implementations of 2 collision operators: standard stochastic rotation dynamics (algorithm = srd) and extended MPC with non-ideal equation-of-state (algorithm = extended). The current implementation was tuned for older GTX 2080Ti and Quadro RTX 6000 cards. 
+Fast hydrodynamic solver using the method of multi-particle collision dynamics MPCD. Python frontend using pybind11 with backends implemented in C++ and CUDA for usage on CPU and GPUs. In the current state, this code can be used to simulate a Poiseuille flow, i.e. a flow between to parallel plates. This can be used for viscosity measurements. The code has implementations of 2 collision operators: standard stochastic rotation dynamics (SRD) and extended MPC with non-ideal equation-of-state. The current implementation was tuned for older GTX 2080Ti and Quadro RTX 6000 cards. 
 
 ## Usage
 
@@ -27,8 +27,8 @@ sim.step_and_sample(100000)
 # Get results
 density, velocity = sim.get_mean_fields()
 ```
-
-The Poiseuille flow is a geometry for which the Navier-Stokes equations can be solved analytically. 
+Use algorithm = "srd" for standard stochastic rotation dynamics, use algorithm = "extended" for extended MPC with non-ideal equation-of-state.
+The Poiseuille flow used here, is a geometry for which the Navier-Stokes equations can be solved analytically. 
 Thus, we can use this geometry for testing the code.
 After the simulation, we may use the flow field data as follows:
 ```python
