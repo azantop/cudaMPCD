@@ -17,7 +17,7 @@ namespace mpcd {
     struct SimulationParameters
     {
         ExperimentType experiment = ExperimentType::standart;
-        MPCDAlgorithm  algorithm = MPCDAlgorithm::extended;
+        MPCDAlgorithm  algorithm = MPCDAlgorithm::srd;
 
         std::array<int, 3>   periodicity = {1, 1, 1};
         std::array<float, 3> volume_size = {10.0f, 10.0f, 10.0f};

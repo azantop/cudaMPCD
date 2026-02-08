@@ -2,14 +2,14 @@
         -------- general settings ------
 
         directory  data/poiseuille_flow/
-        
+
         experiment              standart
         volume_size           10  10 100
-        periodicity            1   1   0 
+        periodicity            1   1   0
 
         ------------ fluid -------------
 
-        algorithm               extended
+        algorithm                    srd
         density                       10
         temperature                  1.0
         delta_t                     0.02
@@ -19,9 +19,8 @@
 
         equilibration_steps        50000
         steps                     100000
-        sample_every                   1 
-        average_samples_over      100000 
-        write_backup                  no 
-        read_backup                   no 
+        sample_every                   1
+        average_samples_over      100000
+        write_backup                  no
+        read_backup                   no
         cuda_device                    0
-    

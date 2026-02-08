@@ -1,9 +1,5 @@
 # cudaMPCD
-Fast hydrodynamic solver using the method of multi-particle collision dynamics.
-Frontend in python using pybind11 with backend implemented in C++/CUDA.     
-In the current state, this code can be used to simulate a Poiseuille flow, i.e. a flow between to parallel plates. This can be used for viscosity measurements. 
-The code has implementations of 2 collision operators: standard stochastic rotation dynamics (algorithm = srd) and extended MPC with non-ideal equation-of-state (algorithm = extended).
-The current implementation was tuned for older GTX 1080Ti and Quadro RTX 6000 cards. 
+Fast hydrodynamic solver using the method of multi-particle collision dynamics. Frontend in python using pybind11 with backend implemented in C++/CUDA. In the current state, this code can be used to simulate a Poiseuille flow, i.e. a flow between to parallel plates. This can be used for viscosity measurements. The code has implementations of 2 collision operators: standard stochastic rotation dynamics (algorithm = srd) and extended MPC with non-ideal equation-of-state (algorithm = extended). The current implementation was tuned for older GTX 2080Ti and Quadro RTX 6000 cards. 
 
 ## Usage
 
@@ -21,7 +17,7 @@ params.periodicity = (1, 1, 0)
 params.drag = 0.001
 params.delta_t = 0.02
 params.experiment = "standart"
-params.algorithm = "extended"
+params.algorithm = "srd"
 
 # Create and run simulation
 sim = pympcd.Simulation(params, "cuda")
@@ -48,7 +44,7 @@ plt.xlabel('channel cross section')
 plt.ylabel('flow speed')
 
 # Simulation parameters:
-L = params.volume_size[2]
+L = params.volume_size[2] - 2 #subtract walls
 g = params.drag
 n = params.n
 dt = params.delta_t
@@ -56,12 +52,12 @@ dt = params.delta_t
 # Viscosity measurement:
 eta = L * L * n * g / (8 * vel_profile.max())
 
-# Viscosity theoretical:
+# Viscosity theoretical for SRD algorithm:
 eta_theo = (1 - math.cos(120/180*math.pi)) / (6*3*dt) * (n - 1 + math.exp(-n))
 
-print( "theoretical: ", eta_theo, ", measured:", eta ) 
+print( "SRD Viscosity; theoretical: ", eta_theo, ", measured:", eta ) 
 ```
-The last line prints the two values of the fluid viscosity "theoretical: 37.50, measured: 37.27"
+The last line prints the two values of the fluid viscosity "SRD Viscosity; theoretical: 37.50, measured: 37.27"
 
 ## Installation
 

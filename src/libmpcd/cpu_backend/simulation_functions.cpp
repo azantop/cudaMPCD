@@ -13,7 +13,7 @@ namespace mpcd::cpu {
         // Initialize particles
         for (size_t i = 0; i < particles.size(); ++i) {
             Particle particle = {};
-            bool          replace;
+            bool     replace;
 
             do {
                 replace  = false;
@@ -43,8 +43,7 @@ namespace mpcd::cpu {
         uint32_t cell_lookup_size = uniform_list.size() / uniform_counter.size();
         float channel_radius2 = (volume_size.z - 2) * (volume_size.z - 2) * 0.25f;
 
-        auto apply_periodic_boundaries = [&] (auto r)
-        {
+        auto apply_periodic_boundaries = [&] (auto r) {
             r.x = fmodf(r.x + 1.5f * volume_size.x, volume_size.x) - volume_size.x * 0.5f;
             r.y = fmodf(r.y + 1.5f * volume_size.y, volume_size.y) - volume_size.y * 0.5f;
             r.z = fmodf(r.z + 1.5f * volume_size.z, volume_size.z) - volume_size.z * 0.5f; // does not interfere with using walls...
@@ -119,8 +118,7 @@ namespace mpcd::cpu {
 
         drag *= delta_t; // pressure gradient that accelerates the flow
 
-        auto apply_periodic_boundaries = [&] (auto r) // does not interfere with using walls...
-        {
+        auto apply_periodic_boundaries = [&] (auto r) { // does not interfere with using walls...
             r.x = fmodf( r.x + 1.5f * volume_size.x, volume_size.x ) - volume_size.x * 0.5f;
             r.y = fmodf( r.y + 1.5f * volume_size.y, volume_size.y ) - volume_size.y * 0.5f;
             r.z = fmodf( r.z + 1.5f * volume_size.z, volume_size.z ) - volume_size.z * 0.5f;
