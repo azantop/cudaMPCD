@@ -2,7 +2,7 @@
 #endif()
 set(CMAKE_CUDA_FLAGS_DEBUG "-G -g")
 
-add_library(cuda_backend SHARED
+add_library(cuda_backend STATIC
     cuda_backend.cu
     cuda_backend_impl.cu
     gpu_arrays.cu
@@ -15,6 +15,7 @@ set_target_properties(cuda_backend PROPERTIES
     CUDA_ARCHITECTURES "61;72"
     CUDA_SEPARABLE_COMPILATION ON
     CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    POSITION_INDEPENDENT_CODE ON
 )
 
 target_include_directories(cuda_backend

@@ -19,21 +19,20 @@ else()
     message(STATUS "CUDA not found - disabling CUDA backend")
 endif()
 
-add_library(mpcd_backend SHARED
+add_library(mpcd_backend STATIC
     api/simulator_handle.cpp
 )
+
+set_target_properties(mpcd_backend PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+)
+
 target_include_directories(mpcd_backend
     PRIVATE ${CMAKE_SOURCE_DIR}/src/libmpcd
     PUBLIC ${CMAKE_SOURCE_DIR}/include
 )
 
-target_link_libraries(mpcd_backend PUBLIC cpu_backend)
+target_link_libraries(mpcd_backend PRIVATE cpu_backend)
 if(CUDAToolkit_FOUND)
-    target_link_libraries(mpcd_backend PUBLIC cuda_backend)
+    target_link_libraries(mpcd_backend PRIVATE cuda_backend)
 endif()
-
-set_target_properties(mpcd_backend PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    INSTALL_RPATH "$ORIGIN"
-    BUILD_WITH_INSTALL_RPATH ON
-)

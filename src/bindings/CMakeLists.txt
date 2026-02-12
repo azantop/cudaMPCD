@@ -6,6 +6,7 @@ if(pybind11_FOUND)
     pybind11_add_module(_pympcd
         bindings.cpp
     )
+
     target_link_libraries(_pympcd PRIVATE
         mpcd_backend
     )
@@ -24,17 +25,11 @@ if(pybind11_FOUND)
     )
 
     # The install directory is the output (wheel) directory
-    if(CUDAToolkit_FOUND)
-        install(TARGETS
-            _pympcd mpcd_backend cuda_backend
-            DESTINATION pympcd
-        )
-    else()
-        install(TARGETS
-            _pympcd mpcd_backend
-            DESTINATION pympcd
-        )
-    endif()
+    install(TARGETS
+        _pympcd
+        DESTINATION pympcd
+    )
+
     # Install Python files
     install(DIRECTORY src/pympcd/
         DESTINATION pympcd
