@@ -1,27 +1,13 @@
-# GoogleTest for C++/CUDA tests
+include(CTest)
+if(BUILD_TESTING)
+    add_subdirectory(statistics)
+
     find_package(GTest)
     if(GTEST_FOUND)
-    include(GoogleTest)
+        include(GoogleTest)
 
-    # Helper function for CPP tests
-    function(add_cpp_test test_name)
-        add_executable(${test_name} ${ARGN})
-        target_include_directories(${test_name}
-            PRIVATE ${CMAKE_SOURCE_DIR}/src/libmpcd
-            PUBLIC ${CMAKE_SOURCE_DIR}/include
-        )
-        target_link_libraries(${test_name}
-            PRIVATE
-            cpu_backend
-            GTest::gtest_main
-        )
-        target_compile_features(${test_name} PRIVATE cxx_std_17)
-        gtest_discover_tests(${test_name})
-    endfunction()
-
-    # Helper function for CUDA tests
-    function(add_cuda_test test_name)
-        if(CUDAToolkit_FOUND)
+        # Helper function for CPP tests
+        function(add_cpp_test test_name)
             add_executable(${test_name} ${ARGN})
             target_include_directories(${test_name}
                 PRIVATE ${CMAKE_SOURCE_DIR}/src/libmpcd
@@ -29,31 +15,49 @@
             )
             target_link_libraries(${test_name}
                 PRIVATE
-                cuda_backend
+                cpu_backend
                 GTest::gtest_main
             )
             target_compile_features(${test_name} PRIVATE cxx_std_17)
-            set_property(TARGET ${test_name} PROPERTY CUDA_ARCHITECTURES 70 75 80)
             gtest_discover_tests(${test_name})
-        endif()
-    endfunction()
+        endfunction()
 
-    # Unit tests for vector operations
-    add_cpp_test(test_vector_3d
-        unit/common/test_vector_3d.cpp
-    )
+        # Helper function for CUDA tests
+        function(add_cuda_test test_name)
+            if(CUDAToolkit_FOUND)
+                add_executable(${test_name} ${ARGN})
+                target_include_directories(${test_name}
+                    PRIVATE ${CMAKE_SOURCE_DIR}/src/libmpcd
+                    PUBLIC ${CMAKE_SOURCE_DIR}/include
+                )
+                target_link_libraries(${test_name}
+                    PRIVATE
+                    cuda_backend
+                    GTest::gtest_main
+                )
+                target_compile_features(${test_name} PRIVATE cxx_std_17)
+                set_property(TARGET ${test_name} PROPERTY CUDA_ARCHITECTURES 70 75 80)
+                gtest_discover_tests(${test_name})
+            endif()
+        endfunction()
 
-    add_cpp_test(test_simulation_functions
-        unit/cpp/test_simulation_functions.cpp
-    )
+        # Unit tests for vector operations
+        add_cpp_test(test_vector_3d
+            unit/common/test_vector_3d.cpp
+        )
 
-    # Unit tests for GPU arrays
-    add_cuda_test(test_gpu_arrays
-        unit/cuda/test_gpu_arrays.cu
-    )
+        add_cpp_test(test_simulation_functions
+            unit/cpp/test_simulation_functions.cpp
+        )
 
-    # Unit tests for GPU simulation kernels
-    add_cuda_test(test_simulation_kernels
-        unit/cuda/test_simulation_kernels.cu
-    )
+        # Unit tests for GPU arrays
+        add_cuda_test(test_gpu_arrays
+            unit/cuda/test_gpu_arrays.cu
+        )
+
+        # Unit tests for GPU simulation kernels
+        add_cuda_test(test_simulation_kernels
+            unit/cuda/test_simulation_kernels.cu
+        )
+    endif()
 endif()
