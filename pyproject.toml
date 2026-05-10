@@ -10,7 +10,7 @@ license-files = ["LICENSE"]
 description="A package for Multi Particle Collsion Dynamics (MPCD) Simulations."
 readme = "README.md"
 authors = [
-  { name = "Arne Zantop", email = "me@email.com" },
+  { name = "Arne Zantop" },
 ]
 requires-python = ">=3.9"
 classifiers = [

@@ -1,0 +1,25 @@
+#!/bin/sh
+# Validates conventional commits format: <type>[(<scope>)]: <description>
+
+commit_msg=$(cat "$1")
+
+# Strip comments and leading/trailing whitespace
+first_line=$(echo "$commit_msg" | grep -v '^#' | head -1 | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+pattern='^(feat|fix|docs|style|refactor|test|build|chore|perf|ci|revert)(\([^)]+\))?(!)?: .+'
+
+if ! echo "$first_line" | grep -qE "$pattern"; then
+    echo ""
+    echo "ERROR: Commit message does not follow Conventional Commits format."
+    echo ""
+    echo "  Expected: <type>[(<scope>)][!]: <description>"
+    echo "  Got:      $first_line"
+    echo ""
+    echo "  Valid types: feat, fix, docs, style, refactor, test, build, chore, perf, ci, revert"
+    echo "  Examples:"
+    echo "    feat: add CUDA backend for extended collision"
+    echo "    fix(bindings): correct array stride for velocity field"
+    echo "    build!: require CMake 3.22"
+    echo ""
+    exit 1
+fi

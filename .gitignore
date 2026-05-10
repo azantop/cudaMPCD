@@ -1,0 +1,21 @@
+# Build
+build/
+dist/
+*.egg-info/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+Testing/
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
