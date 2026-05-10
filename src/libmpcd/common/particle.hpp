@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include "common/vector_3d.hpp"
 
 namespace mpcd {
