@@ -17,7 +17,7 @@ class TestCudaMPCD:
         sim.step(10)
 
         # Should be able to get particle data
-        positions = sim.getParticlePositions()
+        positions = sim.get_particle_positions()
         assert len(positions) > 0
 
     @pytest.mark.cuda
@@ -30,13 +30,13 @@ class TestCudaMPCD:
         sim = pympcd.Simulation(params)
 
         # Get initial state
-        pos1 = sim.getParticlePositions()
+        pos1 = sim.get_particle_positions()
 
         # Run simulation
         sim.step(1)
 
         # Get final state
-        pos2 = sim.getParticlePositions()
+        pos2 = sim.get_particle_positions()
 
         # Positions should have changed
         assert not np.allclose(pos1, pos2)

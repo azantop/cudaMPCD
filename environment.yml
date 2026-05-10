@@ -1,0 +1,14 @@
+name: cudampcd
+channels:
+  - conda-forge
+dependencies:
+  - python>=3.9
+  - numpy
+  - cmake>=3.22
+  - pybind11>=3.0
+  - hdf5
+  - pip
+  - pip:
+      - pytest
+      - ruff
+      - pyright
