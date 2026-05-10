@@ -49,12 +49,12 @@ namespace mpcd::cuda {
             // ~~~ setup & load particles:
 
             int  n_particles  = (cell_idx < end ) ? ::min( cell_lookup_size, uniform_counter[ cell_idx ] ) : 0; // read lookup size
-            bool layer        = (mpc_cells.get_z_idx( cell_idx ) == (volume_size.z - (sign ? 1 : 2))); // wall layer?
+            bool layer        = (mpc_cells.getZIdx( cell_idx ) == (volume_size.z - (sign ? 1 : 2))); // wall layer?
             bool add_ghosts   = (not periodicity.z)
-                                    and ((mpc_cells.get_z_idx( cell_idx ) == sign) or layer); // wall layer?
+                                    and ((mpc_cells.getZIdx( cell_idx ) == sign) or layer); // wall layer?
             int  added_ghosts = {};
 
-            random.sync_phase();
+            random.syncPhase();
             if ( add_ghosts  )
                 for ( int i = 0; i < n_density; ++i )
                     if ( ( ( random.genUniformFloat() > shift ) xor layer ) xor sign )
@@ -89,7 +89,7 @@ namespace mpcd::cuda {
             uint32_t const mask          = __ballot_sync( 0xFFFFFFFF, thread_active ); // mask of participating threads for following __shfl operations.
 
             // define initial coordinate offset to improve calculation of the moment of intertia tensor as the cell centre.
-            auto offset = mpc_cells.get_position( group_cell_idx );
+            auto offset = mpc_cells.getPosition( group_cell_idx );
 
             if ( thread_active )
             {
@@ -105,7 +105,7 @@ namespace mpcd::cuda {
                         float z = z_scale * random.genUniformFloat();
 
                         particle_idx     [ prefix + i ] = -1u;
-                        particle_velocity[ prefix + i ] = random.maxwell_boltzmann() * thermal_velocity;
+                        particle_velocity[ prefix + i ] = random.maxwellBoltzmann() * thermal_velocity;
                         particle_position[ prefix + i ] = mpcd::Vector( random.genUniformFloat() - 0.5f, random.genUniformFloat() - 0.5f, layer ? 0.5f - z : z - 0.5f ) + offset;
                     }
                 }
@@ -135,7 +135,7 @@ namespace mpcd::cuda {
 
             if ( thread_active )
             {
-                random.sync_phase();
+                random.syncPhase();
 
                 #if 1 // discrete axis set or continuous random vector
 
@@ -164,7 +164,7 @@ namespace mpcd::cuda {
                     mpcd::Vector axis = gpu_utilities::group_share( random.genUnitVector(), mask, group_size );
                 #endif
 
-                float z_centre = mpc_cells.get_position( group_cell_idx ).z;
+                float z_centre = mpc_cells.getPosition( group_cell_idx ).z;
                 mpcd::Vector centre_of_mass = {},
                             mean_velocity  = {};
 
@@ -232,7 +232,7 @@ namespace mpcd::cuda {
 
                     InertiaTensor< float > I = {};
 
-                    random.sync_phase();
+                    random.syncPhase();
                     for ( int i = threadIdx.x % group_size; i < n_particles; i += group_size )
                     {
                         bool const side     = ( group >> ( i / group_size ) ) & 0x1;

@@ -48,8 +48,8 @@ namespace mpcd::cuda {
 
                 } while (replace);
 
-                particle.velocity = random.maxwell_boltzmann() * thermal_velocity;
-                particle.cell_idx = mpc_cells.get_index(particle.position);
+                particle.velocity = random.maxwellBoltzmann() * thermal_velocity;
+                particle.cell_idx = mpc_cells.getIndex(particle.position);
 
                 particles[idx] = particle;
             }
@@ -121,7 +121,7 @@ namespace mpcd::cuda {
             }
 
             particle.position = apply_periodic_boundaries( particle.position + grid_shift );
-            particle.cell_idx = mpc_cells.get_index( particle.position );
+            particle.cell_idx = mpc_cells.getIndex( particle.position );
 
             // make an entry in the index lookup for the cell in which the particle lies
             int slot = atomicAdd( uniform_counter.data() + particle.cell_idx, 1 );
@@ -185,12 +185,12 @@ namespace mpcd::cuda {
 
         for ( uint32_t end = mpc_cells.size(); __any_sync( 0xFFFFFFFF, cell_idx < end ); cell_idx += stride )
         {
-            random.sync_phase();
+            random.syncPhase();
 
             MPCCell cell         = {};
             uint32_t      n_particles  = (cell_idx < mpc_cells.size()) ? ::min(cell_lookup_size, uniform_counter[cell_idx]) : 0; // load the table size
-            bool const    layer        = (mpc_cells.get_z_idx(cell_idx) == (volume_size.z - (sign ? 1 : 2)));
-            bool const    add_ghosts   = (not periodicity.z) and ((mpc_cells.get_z_idx(cell_idx) == sign) or layer); // wall layer?
+            bool const    layer        = (mpc_cells.getZIdx(cell_idx) == (volume_size.z - (sign ? 1 : 2)));
+            bool const    add_ghosts   = (not periodicity.z) and ((mpc_cells.getZIdx(cell_idx) == sign) or layer); // wall layer?
             uint32_t      added_ghosts = {};
 
             if (add_ghosts) // create wall's ghost particles on the fly; prepare number of ghosts
@@ -211,7 +211,7 @@ namespace mpcd::cuda {
                     particle_idx[prefix + i] = cell_idx + i * mpc_cells.size(); // write to shared mem which lookup table positions need to be loaded.
 
                 if (add_ghosts) { // create wall's ghost particles on the fly
-                    auto pos = mpc_cells.get_position(cell_idx);
+                    auto pos = mpc_cells.getPosition(cell_idx);
 
                     for (int i = n_particles - added_ghosts; i < n_particles; ++i)
                     {
@@ -223,7 +223,7 @@ namespace mpcd::cuda {
 
                         particle_idx     [prefix + i] = -1u; // this means that this particle should not be loaded
                         particle_position[prefix + i] = mpcd::Vector(random.genUniformFloat() - 0.5f, random.genUniformFloat() - 0.5f, z - 0.5f) + pos;
-                        particle_velocity[prefix + i] = random.maxwell_boltzmann() * thermal_velocity;
+                        particle_velocity[prefix + i] = random.maxwellBoltzmann() * thermal_velocity;
                     }
                 }
             }
@@ -250,10 +250,10 @@ namespace mpcd::cuda {
             if (thread_active) { // SRD collision step, each thread one SRD cell
                 if (n_particles > 1) {
                     for (uint32_t i = 0; i < n_particles; ++i)
-                        cell.unlocked_add({0, 0, particle_position[prefix + i], particle_velocity[prefix + i]});
+                        cell.unlockedAdd({0, 0, particle_position[prefix + i], particle_velocity[prefix + i]});
 
                     cell.average();
-                    random.sync_phase();
+                    random.syncPhase();
 
                     auto  axis = random.genUnitVector();
 
@@ -266,7 +266,7 @@ namespace mpcd::cuda {
                     }
 
                     for (uint32_t i = 0; i < n_particles; ++i) { // finilize step:
-                        particle_velocity[prefix + i] += cell.get_correction(particle_position[prefix + i]);
+                        particle_velocity[prefix + i] += cell.getCorrection(particle_position[prefix + i]);
                         particle_position[prefix + i] = apply_periodic_boundaries(particle_position[prefix + i] - grid_shift);
                         particle_velocity[prefix + i].x += drag;
                     }
@@ -280,7 +280,7 @@ namespace mpcd::cuda {
             for (uint32_t i = threadIdx.x; i < sum; i += 32) { // write the SRD fluid particles to memory uniformly without binding threads to SRD cells
                 if (particle_idx[ i ] != -1u) {
                     if (particle_idx [ i ] < regular_particles) {
-                        auto cidx = mpc_cells.get_index(particle_position[i]);
+                        auto cidx = mpc_cells.getIndex(particle_position[i]);
                         particles[particle_idx[i]] = {0, 0, particle_position[i], particle_velocity[i], cidx};
                     }
                 }
@@ -301,7 +301,7 @@ namespace mpcd::cuda {
 
             for (auto end = particles.size(); idx < end; idx += stride) {
                 auto particle = particles[idx];
-                mpc_cells[particle.position].add_reduce_only(particle.velocity);
+                mpc_cells[particle.position].addReduceOnly(particle.velocity);
             }
         }
 
@@ -314,7 +314,7 @@ namespace mpcd::cuda {
                    stride = blockDim.x * gridDim.x;
 
             for (; idx < mpc_cells.size(); idx += stride)
-                mpc_cells[idx].average_reduce_only();
+                mpc_cells[idx].averageReduceOnly();
         }
 
         /**

@@ -57,15 +57,15 @@ namespace mpcd::cpu {
         size_type edge_y()    const { return y_size; }
         size_type edge_z()    const { return z_size; }
         size_type face_xy()   const { return xy_size; }
-        Vector    get_edges() const { return edges; }
+        Vector    getEdges() const { return edges; }
 
-        bool im_volumen(Vector const& position) const { return (round(position.scaledWith(inverse_edges)) == 0); }
+        bool isInVolume(Vector const& position) const { return (round(position.scaledWith(inverse_edges)) == 0); }
 
         reference  operator[] (size_t const& idx)       { return store[idx]; }
         value_type operator[] (size_t const& idx) const { return store[idx]; }
 
 
-        inline uint32_t get_index(Vector const& position) const {
+        inline uint32_t getIndex(Vector const& position) const {
             uint32_t x = static_cast<uint32_t>(floorf(position.x + shift.x)) % x_size;
             uint32_t y = static_cast<uint32_t>(floorf(position.y + shift.y)) % y_size;
             uint32_t z = static_cast<uint32_t>(floorf(position.z + shift.z)) % z_size;
@@ -74,22 +74,22 @@ namespace mpcd::cpu {
         }
 
         value_type&     operator[] (Vector const& position) {
-            return store[get_index(position)];
+            return store[getIndex(position)];
         }
 
         value_type      operator[] ( Vector const& position ) const {
-            return store[get_index(position)];
+            return store[getIndex(position)];
         }
 
 
-        Vector get_position(uint32_t const& idx) const {
+        Vector getPosition(uint32_t const& idx) const {
             return Vector({Float(0.5) + (idx % x_size),
                         Float(0.5) + ((idx % xy_size) / x_size),
                         Float(0.5) + (idx / xy_size)})
                         - shift;
         }
 
-        Float get_z_idx(uint32_t const& idx) const{
+        Float getZIdx(uint32_t const& idx) const{
             return idx / xy_size;
         }
 
@@ -113,4 +113,4 @@ namespace mpcd::cpu {
         const_reverse_iterator rend()    const
                             { return reverse_iterator(store.data()); }
     };
-} // namespace mpcd::cuda
+} // namespace mpcd::cpu

@@ -56,7 +56,7 @@ namespace mpcd {
         *  @brief On the gpu the gaussian random number produced by each thread my be different in number.
         *      Hence, call this function frequently, to avoid brach divergence in the gaussianf() and gaussian() functions.
         */
-        __host__ __device__ void sync_phase() {
+        __host__ __device__ void syncPhase() {
             generate_f = 0x0;
         }
 
@@ -252,7 +252,7 @@ namespace mpcd {
             return {rd1 * rdh, rd2 * rdh, ( 1.0f - 2.0f * rsq )};
         }
 
-        __host__ __device__ mpcd::Vector maxwell_boltzmann() {
+        __host__ __device__ mpcd::Vector maxwellBoltzmann() {
             return {gaussianf(), gaussianf(), gaussianf()};
         }
     };
@@ -344,7 +344,7 @@ namespace mpcd {
                         * ( 1.0f / static_cast< float >( UINT32_MAX ) ) );
         }
 
-        __host__ __device__ double uniform_double()
+        __host__ __device__ double uniformDouble()
         {
             return ( static_cast< double >( operator()() ) * ( 1.0 / static_cast< double >( UINT64_MAX ) ) );
         }

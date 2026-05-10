@@ -80,7 +80,7 @@ namespace mpcd::cpu {
             }
 
             for (auto& cell : mpc_cells)
-                cell.average_reduce_only();
+                cell.averageReduceOnly();
 
             if (sampling_state == SAMPLING_COMPLETED) {
                 sampling_state = SAMPLING_IN_PROGRESS;
@@ -154,4 +154,4 @@ namespace mpcd::cpu {
     void CPUBackend::setParticles(std::vector<float> const& positions, std::vector<float> const& velocities) {
         // TODO
     }
-} // namespace mpcd::cuda
+} // namespace mpcd::cpu

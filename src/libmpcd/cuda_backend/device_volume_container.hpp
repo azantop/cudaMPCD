@@ -63,15 +63,15 @@ namespace mpcd::cuda {
         __host__ __device__ size_type edge_y()    const { return y_size; }
         __host__ __device__ size_type edge_z()    const { return z_size; }
         __host__ __device__ size_type face_xy()   const { return xy_size; }
-        __host__ __device__ Vector    get_edges() const { return edges; }
+        __host__ __device__ Vector    getEdges() const { return edges; }
 
-        __host__ __device__ bool im_volumen(Vector const& position) const { return (round(position.scaledWith(inverse_edges)) == 0); }
+        __host__ __device__ bool isInVolume(Vector const& position) const { return (round(position.scaledWith(inverse_edges)) == 0); }
 
         __device__ reference  operator[] (size_t const& idx)       { return store[ idx ]; }
         __device__ value_type operator[] (size_t const& idx) const { return store[ idx ]; }
 
 
-        __device__ uint32_t get_index(Vector const& position) const {
+        __device__ uint32_t getIndex(Vector const& position) const {
             uint32_t x = static_cast<uint32_t>(floorf(position.x + shift.x)) % x_size;
             uint32_t y = static_cast<uint32_t>(floorf(position.y + shift.y)) % y_size;
             uint32_t z = static_cast<uint32_t>(floorf(position.z + shift.z)) % z_size;
@@ -80,22 +80,22 @@ namespace mpcd::cuda {
         }
 
         __device__ value_type&     operator[] (Vector const& position) {
-            return store[get_index(position)];
+            return store[getIndex(position)];
         }
 
         __device__ value_type      operator[] ( Vector const& position ) const {
-            return store[get_index(position)];
+            return store[getIndex(position)];
         }
 
 
-        __device__ Vector get_position(uint32_t const& idx) const {
+        __device__ Vector getPosition(uint32_t const& idx) const {
             return Vector({Float(0.5) + (idx % x_size),
                         Float(0.5) + ((idx % xy_size) / x_size),
                         Float(0.5) + (idx / xy_size)})
                     - shift;
         }
 
-        __device__ Float get_z_idx(uint32_t const& idx) const{
+        __device__ Float getZIdx(uint32_t const& idx) const{
             return idx / xy_size;
         }
 

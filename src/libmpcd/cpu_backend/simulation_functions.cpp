@@ -25,8 +25,8 @@ namespace mpcd::cpu {
 
             } while (replace);
 
-            particle.velocity = random.maxwell_boltzmann() * params.thermal_velocity;
-            particle.cell_idx = mpc_cells.get_index(particle.position);
+            particle.velocity = random.maxwellBoltzmann() * params.thermal_velocity;
+            particle.cell_idx = mpc_cells.getIndex(particle.position);
 
             particles[i] = particle;
         }
@@ -82,7 +82,7 @@ namespace mpcd::cpu {
             }
 
             particle.position = apply_periodic_boundaries(particle.position + grid_shift);
-            particle.cell_idx = mpc_cells.get_index(particle.position);
+            particle.cell_idx = mpc_cells.getIndex(particle.position);
 
             // make an entry in the index lookup for the cell in which the particle lies
             int slot = uniform_counter[particle.cell_idx];
@@ -132,8 +132,8 @@ namespace mpcd::cpu {
             MPCCell cell = {};
             uint32_t n_particles = (cell_idx < mpc_cells.size()) ? std::min(cell_lookup_size, uniform_counter[cell_idx]) : 0; // load the table size
 
-            bool const    layer        = (mpc_cells.get_z_idx(cell_idx) == (volume_size.z - (sign ? 1 : 2)));
-            bool const    add_ghosts   = (not periodicity.z) and ((mpc_cells.get_z_idx(cell_idx) == sign) or layer); // wall layer?
+            bool const    layer        = (mpc_cells.getZIdx(cell_idx) == (volume_size.z - (sign ? 1 : 2)));
+            bool const    add_ghosts   = (not periodicity.z) and ((mpc_cells.getZIdx(cell_idx) == sign) or layer); // wall layer?
             uint32_t      added_ghosts = {};
 
             if (add_ghosts) // create wall's ghost particles on the fly; prepare number of ghosts
@@ -149,7 +149,7 @@ namespace mpcd::cpu {
             }
 
             if (add_ghosts) { // create wall's ghost particles on the fly
-                auto pos = mpc_cells.get_position(cell_idx);
+                auto pos = mpc_cells.getPosition(cell_idx);
 
                 for (int i = n_particles - added_ghosts; i < n_particles; ++i) {
                     float z;
@@ -160,13 +160,13 @@ namespace mpcd::cpu {
 
                     particle_idx[i] = -1;
                     buffer[i].position = Vector(random.genUniformFloat() - 0.5f, random.genUniformFloat() - 0.5f, z - 0.5f) + pos;
-                    buffer[i].velocity = random.maxwell_boltzmann() * thermal_velocity;
+                    buffer[i].velocity = random.maxwellBoltzmann() * thermal_velocity;
                 }
             }
 
             if (n_particles > 1) {
                 for (uint32_t i = 0; i < n_particles; ++i)
-                    cell.unlocked_add(buffer[i]);
+                    cell.unlockedAdd(buffer[i]);
 
                 cell.average();
                 auto axis = random.genUnitVector();
@@ -180,7 +180,7 @@ namespace mpcd::cpu {
                 }
 
                 for (uint32_t i = 0; i < n_particles; ++i) { // finilize step:
-                    buffer[i].velocity += cell.get_correction(buffer[i].position);
+                    buffer[i].velocity += cell.getCorrection(buffer[i].position);
                     buffer[i].position = apply_periodic_boundaries(buffer[i].position - grid_shift);
                     buffer[i].velocity.x += drag;
                 }
@@ -189,7 +189,7 @@ namespace mpcd::cpu {
             for (uint32_t i = 0; i < std::min(n_particles - added_ghosts, cell_lookup_size); ++i) {
                 if (particle_idx[i] != -1) {
                     if (particle_idx[i] < regular_particles) {
-                        buffer[i].cell_idx = mpc_cells.get_index(buffer[i].position);
+                        buffer[i].cell_idx = mpc_cells.getIndex(buffer[i].position);
                         buffer[i].flags = 0;
                         buffer[i].cidx = 0;
                         particles[particle_idx[i]] = buffer[i];
@@ -232,8 +232,8 @@ namespace mpcd::cpu {
             MPCCell cell = {};
             uint32_t n_particles = (cell_idx < mpc_cells.size()) ? std::min(cell_lookup_size, uniform_counter[cell_idx]) : 0; // load the table size
 
-            bool const    layer        = (mpc_cells.get_z_idx(cell_idx) == (volume_size.z - (sign ? 1 : 2)));
-            bool const    add_ghosts   = (not periodicity.z) and ((mpc_cells.get_z_idx(cell_idx) == sign) or layer); // wall layer?
+            bool const    layer        = (mpc_cells.getZIdx(cell_idx) == (volume_size.z - (sign ? 1 : 2)));
+            bool const    add_ghosts   = (not periodicity.z) and ((mpc_cells.getZIdx(cell_idx) == sign) or layer); // wall layer?
             uint32_t      added_ghosts = {};
 
             if (add_ghosts) // create wall's ghost particles on the fly; prepare number of ghosts
@@ -249,7 +249,7 @@ namespace mpcd::cpu {
                 buffer[i] = particles[particle_idx[i]];
             }
 
-            auto offset = mpc_cells.get_position(cell_idx);
+            auto offset = mpc_cells.getPosition(cell_idx);
             if (add_ghosts) { // create wall's ghost particles on the fly
                 for (int i = n_particles - added_ghosts; i < n_particles; ++i) {
                     float z;
@@ -260,7 +260,7 @@ namespace mpcd::cpu {
 
                     particle_idx[i] = -1;
                     buffer[i].position = Vector(random.genUniformFloat() - 0.5f, random.genUniformFloat() - 0.5f, z - 0.5f) + offset;
-                    buffer[i].velocity = random.maxwell_boltzmann() * thermal_velocity;
+                    buffer[i].velocity = random.maxwellBoltzmann() * thermal_velocity;
                 }
             }
 
@@ -393,7 +393,7 @@ namespace mpcd::cpu {
             for (uint32_t i = 0; i < n_particles - added_ghosts; ++i) {
                 if (particle_idx[i] != -1) {
                     if (particle_idx[i] < regular_particles) {
-                        buffer[i].cell_idx = mpc_cells.get_index(buffer[i].position);
+                        buffer[i].cell_idx = mpc_cells.getIndex(buffer[i].position);
                         buffer[i].flags = 0;
                         buffer[i].cidx = 0;
                         particles[particle_idx[i]] = buffer[i];

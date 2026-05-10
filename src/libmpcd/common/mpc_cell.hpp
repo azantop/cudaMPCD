@@ -26,7 +26,7 @@ namespace mpcd {
                  centre_of_mass;
 
     #if defined(__CUDACC__) || defined(__NVCC__)
-        __device__ void atomic_add(MPCCell const& rhs) {
+        __device__ void atomicAddCell(MPCCell const& rhs) {
             atomicAdd(&density, rhs.density);
 
             mean_velocity .atomicAdd(rhs.mean_velocity);
@@ -36,7 +36,7 @@ namespace mpcd {
         /**
         *  @brief increment counter and return last value.
         */
-        __device__ unsigned get_particle_index() {
+        __device__ unsigned getParticleIndex() {
             return atomicAdd( &density, 1 );
         }
 
@@ -46,12 +46,12 @@ namespace mpcd {
             return atomicAdd(&density, 1);
         }
 
-        __device__ void add_reduce_only(Vector const& velocity) {
+        __device__ void addReduceOnly(Vector const& velocity) {
             atomicAdd( &density, 1 );
             mean_velocity.atomicAdd( velocity );
         }
 
-        __device__ void group_reduce(unsigned group_size) {
+        __device__ void groupReduce(unsigned group_size) {
             if (group_size > 1) {
                 density          = cuda::gpu_utilities::group_sum( density,         -1u, group_size );
                 mean_velocity.x  = cuda::gpu_utilities::group_sum( mean_velocity.x,  -1u, group_size );
@@ -64,13 +64,13 @@ namespace mpcd {
         }
     #endif
 
-        __device__ void unlocked_add(Particle const& particle) {
+        __device__ void unlockedAdd(Particle const& particle) {
             density += 1;
             mean_velocity  += particle.velocity;
             centre_of_mass += particle.position;
         }
 
-        __device__ void unlocked_subtract_velocity(Particle const& particle) {
+        __device__ void unlockedSubtractVelocity(Particle const& particle) {
             mean_velocity  -= particle.velocity;
         }
 
@@ -79,11 +79,11 @@ namespace mpcd {
             mean_velocity   *= Float(1.0) / density;
         }
 
-        __device__ Vector const get_correction(Vector const& position) const {
+        __device__ Vector const getCorrection(Vector const& position) const {
             return mean_velocity;
         }
 
-        __device__ void average_reduce_only() { if(density > 0) { mean_velocity = mean_velocity / density; }}
+        __device__ void averageReduceOnly() { if(density > 0) { mean_velocity = mean_velocity / density; }}
 
         __device__ void clear() {
             density        = {};
