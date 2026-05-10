@@ -31,7 +31,7 @@ jobs:
             libgtest-dev
 
       - name: Install Python package and dev tools
-        run: uv pip install --system ".[dev]"
+        run: uv pip install --system ".[dev]" pybind11 pybind11
 
       - name: Build C++ targets
         run: |
