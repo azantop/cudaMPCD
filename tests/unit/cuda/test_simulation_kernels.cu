@@ -35,7 +35,7 @@ TEST_F(SimulationKernelsTest, translateParticles) {
         generator.push();
 
         translateParticles<<<1, 1>>>(particles, mpc_cells, generator, grid_shift, test_volume, periodicity, 1,
-                                            ExperimentType::standart, uniform_counter, uniform_list);
+                                            ExperimentType::standard, uniform_counter, uniform_list);
 
         particles.pull();
         generator.push();

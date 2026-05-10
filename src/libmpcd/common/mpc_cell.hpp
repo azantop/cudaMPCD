@@ -106,4 +106,4 @@ namespace mpcd {
         mpcd::Float  density;       // 1st moment
         mpcd::Vector mean_velocity; // 2nd moment
     };
-} // namespace mpcd::cuda
+} // namespace mpcd

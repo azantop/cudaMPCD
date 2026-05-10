@@ -10,7 +10,7 @@
 
 namespace mpcd {
     template<typename T>
-    struct symmetric_matrix
+    struct SymmetricMatrix
     {
         T xx = {},
         yy = {},
@@ -19,8 +19,8 @@ namespace mpcd {
         xz = {},
         yz = {};
 
-        __device__ symmetric_matrix() {}
-        __device__ symmetric_matrix( T _xx, T _yy, T _zz, T _xy, T _xz, T _yz ) : xx {_xx }, yy {_yy }, zz {_zz }, xy {_xy }, xz {_xz }, yz {_yz } {}
+        __device__ SymmetricMatrix() {}
+        __device__ SymmetricMatrix( T _xx, T _yy, T _zz, T _xy, T _xz, T _yz ) : xx {_xx }, yy {_yy }, zz {_zz }, xy {_xy }, xz {_xz }, yz {_yz } {}
 
         __device__ T trace()       const { return xx + yy + zz; }
         __device__ T determinant() const { return xx * ( yy * zz -  yz * yz ) + xz * ( 2 * xy * yz - yy * xz ) - ( xy * xy * zz ); }
@@ -32,9 +32,9 @@ namespace mpcd {
                     ( xz * v.x ) + ( yz * v.y ) + ( zz * v.z ) };
         }
 
-        __device__ symmetric_matrix operator* ( T const& scalar ) const { return { xx * scalar, yy * scalar, zz * scalar, xy * scalar, xz * scalar, yz * scalar }; }
+        __device__ SymmetricMatrix operator* ( T const& scalar ) const { return { xx * scalar, yy * scalar, zz * scalar, xy * scalar, xz * scalar, yz * scalar }; }
 
-        __device__ symmetric_matrix inverse_no_check( T det )
+        __device__ SymmetricMatrix inverseNoCheck( T det )
         {
             if ( det < 0 )
                 det = 0;
@@ -49,7 +49,7 @@ namespace mpcd {
                     ( xy * xz - xx * yz ) * inverse_det };
         }
 
-        __device__ symmetric_matrix inverse( T const tolerance=1.0e-5 )
+        __device__ SymmetricMatrix inverse( T const tolerance=1.0e-5 )
         {
             T det = determinant();
 
@@ -77,7 +77,7 @@ namespace mpcd {
                     return {};
             }
         }
-        __device__ symmetric_matrix invert()
+        __device__ SymmetricMatrix invert()
         {
             *this = inverse();
             return *this;
@@ -90,9 +90,9 @@ namespace mpcd {
     };
 
     template< typename T >
-    struct traegheitsmoment : public symmetric_matrix<T>
+    struct InertiaTensor : public SymmetricMatrix<T>
     {
-        using base_class = symmetric_matrix< T >;
+        using base_class = SymmetricMatrix< T >;
         using base_class::xx;
         using base_class::yy;
         using base_class::zz;
@@ -101,10 +101,10 @@ namespace mpcd {
         using base_class::yz;
 
         // ~~~ ctors:
-        __device__ traegheitsmoment() {}
+        __device__ InertiaTensor() {}
 
         // ~~~ functions:
-        __device__ void shift_frame( mpcd::Vector shift, T const& mass = 1 ) // Steinerscher Statz
+        __device__ void shiftFrame( mpcd::Vector shift, T const& mass = 1 ) // parallel axis theorem
         {
             auto squares = shift.scaledWith( shift );
 
@@ -116,9 +116,9 @@ namespace mpcd {
             yz -= ( shift.y * shift.z     ) * mass;
         }
 
-        __device__ void unshift_frame( mpcd::Vector3D<T> shift, T const& mass = 1 ) // Steinerscher Statz
+        __device__ void unshiftFrame( mpcd::Vector3D<T> shift, T const& mass = 1 ) // parallel axis theorem
         {
-            auto squares = shift.scaled_with( shift );
+            auto squares = shift.scaledWith( shift );
 
             xx -= ( squares.y + squares.z ) * mass;
             yy -= ( squares.x + squares.z ) * mass;
@@ -128,12 +128,12 @@ namespace mpcd {
             yz += ( shift.y * shift.z     ) * mass;
         }
 
-        __device__ T diagonal_to_orientation( mpcd::Vector3D<T> const& axis ) const
+        __device__ T diagonalToOrientation( mpcd::Vector3D<T> const& axis ) const
         {
             return axis.x * axis.x * xx + axis.y * axis.y * yy, axis.z * axis.z * zz;
         }
 
-        __device__ traegheitsmoment & operator+= ( base_class const& contribution )
+        __device__ InertiaTensor & operator+= ( base_class const& contribution )
         {
             xx += contribution.xx;
             yy += contribution.yy;
@@ -144,7 +144,7 @@ namespace mpcd {
             return *this;
         }
 
-        __device__ void atomic_add( base_class const& contribution )
+        __device__ void atomicAdd( base_class const& contribution )
         {
             atomicAdd( &xx, contribution.xx );
             atomicAdd( &yy, contribution.yy );
@@ -154,13 +154,13 @@ namespace mpcd {
             atomicAdd( &yz, contribution.yz );
         }
 
-        __device__ traegheitsmoment& operator=  ( base_class const& o )
+        __device__ InertiaTensor& operator=  ( base_class const& o )
         {
             xx = o.xx; yy = o.yy; zz = o.zz;
             xy = o.xy; yz = o.yz; xz = o.xz;
             return *this;
         }
-        __device__ traegheitsmoment& operator=  ( T p ) { xx = p; yy = p; zz = p; xy = p; xz = p; yz = p; return *this; }
+        __device__ InertiaTensor& operator=  ( T p ) { xx = p; yy = p; zz = p; xy = p; xz = p; yz = p; return *this; }
     };
 } // namespace mpcd
 

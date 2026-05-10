@@ -145,9 +145,9 @@ PYBIND11_MODULE(_pympcd, m) {
                                     (p.volume_size[2] - 2 * (1 - p.periodicity[2]));                    }
                 )
         .def_property("experiment",
-                    [](const SimulationParameters &p) { return p.experiment == ExperimentType::standart ? "standart" : "channel"; },
+                    [](const SimulationParameters &p) { return p.experiment == ExperimentType::standard ? "standard" : "channel"; },
                     [](SimulationParameters &p, const std::string &experiment) {
-                        p.experiment = experiment == "standart" ? ExperimentType::standart : ExperimentType::channel;
+                        p.experiment = experiment == "standard" ? ExperimentType::standard : ExperimentType::channel;
                     }
                 )
         .def_property("algorithm",

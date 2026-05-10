@@ -126,7 +126,7 @@ namespace mpcd::cuda {
         return { group_sum( v.x, mask, group_size ), group_sum( v.y, mask, group_size ), group_sum( v.z, mask, group_size ) };
         }
 
-        __device__ __inline__ symmetric_matrix<Float> group_sum( traegheitsmoment<Float> I, unsigned mask, unsigned group_size )
+        __device__ __inline__ SymmetricMatrix<Float> group_sum( InertiaTensor<Float> I, unsigned mask, unsigned group_size )
         {
         return { group_sum( I.xx, mask, group_size ), group_sum( I.yy, mask, group_size ), group_sum( I.zz, mask, group_size ),
                     group_sum( I.xy, mask, group_size ), group_sum( I.xz, mask, group_size ), group_sum( I.yz, mask, group_size ) };

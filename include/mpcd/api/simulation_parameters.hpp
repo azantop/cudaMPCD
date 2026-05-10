@@ -5,7 +5,7 @@
 
 namespace mpcd {
     enum class ExperimentType {
-        standart, // Simulate in standart 3D periodic domain
+        standard, // Simulate in standard 3D periodic domain
         channel, // Simulate in 2D periodic channel domain
     };
 
@@ -16,7 +16,7 @@ namespace mpcd {
 
     struct SimulationParameters
     {
-        ExperimentType experiment = ExperimentType::standart;
+        ExperimentType experiment = ExperimentType::standard;
         MPCDAlgorithm  algorithm = MPCDAlgorithm::srd;
 
         std::array<int, 3>   periodicity = {1, 1, 1};

@@ -35,8 +35,8 @@ namespace mpcd {
         input_file >> parameter_name >> output_directory;
 
         input_file >> parameter_name >> branch;
-        if ( branch == "standart" )
-            experiment = ExperimentType::standart;
+        if ( branch == "standard" )
+            experiment = ExperimentType::standard;
 
         input_file >> parameter_name >> volume_size[0] >> volume_size[1] >> volume_size[2];
         input_file >> parameter_name >> periodicity[0] >> periodicity[1] >> periodicity[2];

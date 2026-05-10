@@ -350,7 +350,7 @@ namespace mpcd::cpu {
                     float mean_0 = 0.0f, // we assign new random velocities in the groups, but have to remove their mean to assure momentum conservation.
                           mean_1 = 0.0f;
 
-                    traegheitsmoment<float> I = {}; // moment of inertia tensor
+                    InertiaTensor<float> I = {};
 
                     for (int i = 0; i < n_particles; ++i) {
                         bool const side     = (group >> i) & 1;
@@ -361,7 +361,7 @@ namespace mpcd::cpu {
                         buffer[i].velocity += axis * (v_random - buffer[i].velocity.dotProduct(axis) + (side ? transfer_0 : transfer_1));
 
                         auto squares  = buffer[i].position.scaledWith(buffer[i].position);
-                        I            += symmetric_matrix<float>({squares.y + squares.z, squares.x + squares.z, squares.x + squares.y,
+                        I            += SymmetricMatrix<float>({squares.y + squares.z, squares.x + squares.z, squares.x + squares.y,
                                                                     -buffer[i].position.x * buffer[i].position.y,
                                                                     -buffer[i].position.x * buffer[i].position.z,
                                                                     -buffer[i].position.y * buffer[i].position.z});

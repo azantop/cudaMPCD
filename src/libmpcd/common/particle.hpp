@@ -19,4 +19,4 @@ namespace mpcd {
             stream.read((char*) &position, sizeof(Vector) * 2);
         }
     };
-} // namespace mpcd::cuda
+} // namespace mpcd

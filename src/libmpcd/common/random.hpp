@@ -25,9 +25,9 @@ namespace mpcd {
     {
         using Float = mpcd::Float;
 
-        uint32_t s[ 4 ]; // intenal state
+        uint32_t s[ 4 ]; // internal state
 
-        // for Bux-Muller algorithm the 2nd normal distributed
+        // for Box-Muller algorithm the 2nd normal distributed
         // random number is stored in this variables, and used in every 2nd call:
         bool     generate_f = {};
         float    z1_f;
@@ -121,7 +121,7 @@ namespace mpcd {
         }
 
         /**
-        *   @brief produce random fload uniformly distributed on the interval [ 0, 1 )
+        *   @brief produce random float uniformly distributed on the interval [ 0, 1 )
         */
         __host__ __device__ float genUniformFloat() {
             return (static_cast<float>(operator()())
@@ -136,7 +136,7 @@ namespace mpcd {
         }
 
         /**
-        *   @brief produce random float accoring to normal distribution using Bux-Muller
+        *   @brief produce random float according to normal distribution using Box-Muller
         */
         __host__ __device__ float gaussianf() {
             generate_f = !generate_f;
@@ -164,7 +164,7 @@ namespace mpcd {
         }
 
         /**
-        *   @brief produce random double accoring to normal distribution using Bux-Muller
+        *   @brief produce random double according to normal distribution using Box-Muller
         */
         __host__ __device__ double gaussian() {
             generate_d = !generate_d;
@@ -187,7 +187,7 @@ namespace mpcd {
         }
 
         /**
-        *   @brief produce random fload accoring to the gamma distribution using the method
+        *   @brief produce random float according to the gamma distribution using the method
         *          taken from the gnu scientific library, assuming a > 0
         */
         __host__ __device__ float gamma(Float const& a, Float const& b) {
@@ -258,10 +258,10 @@ namespace mpcd {
     };
 
     /**
-    *  @brief Another Pseudo RNG from the same author, this time as a minimal implememtation
+    *  @brief Another Pseudo RNG from the same author, this time as a minimal implementation
     *  used just for generating the seed of the parallel RNG used on the GPU
     */
-    class xorshift1024star
+    class Xorshift1024Star
     {
         uint64_t s[ 16 ];
         int      p = 0;
@@ -276,7 +276,7 @@ namespace mpcd {
 
     public:
 
-        xorshift1024star()
+        Xorshift1024Star()
         {
             Xoshiro128Plus helper;
             for ( int i = 0; i < 16; ++i )

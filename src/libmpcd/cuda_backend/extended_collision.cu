@@ -230,7 +230,7 @@ namespace mpcd::cuda {
                     float mean_0 = {}, // we assign new random velocities in the groups, but have to remove their mean to assure momentum conservation.
                         mean_1 = {};
 
-                    traegheitsmoment< float > I = {}; // moment of inertia tensor
+                    InertiaTensor< float > I = {};
 
                     random.sync_phase();
                     for ( int i = threadIdx.x % group_size; i < n_particles; i += group_size )
@@ -243,7 +243,7 @@ namespace mpcd::cuda {
                         particle_velocity[ prefix + i ] += axis * ( v_random - particle_velocity[ prefix + i ].dotProduct( axis ) + ( side ? transfer_0 : transfer_1 ) );
 
                         auto squares  = particle_position[ prefix + i ].scaledWith( particle_position[ prefix + i ] );
-                        I            += symmetric_matrix< float > ( { squares.y + squares.z, squares.x + squares.z, squares.x + squares.y,
+                        I            += SymmetricMatrix< float > ( { squares.y + squares.z, squares.x + squares.z, squares.x + squares.y,
                                                                     -particle_position[ prefix + i ].x * particle_position[ prefix + i ].y,
                                                                     -particle_position[ prefix + i ].x * particle_position[ prefix + i ].z,
                                                                     -particle_position[ prefix + i ].y * particle_position[ prefix + i ].z } );

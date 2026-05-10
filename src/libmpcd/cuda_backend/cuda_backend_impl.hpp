@@ -33,7 +33,7 @@ namespace mpcd::cuda {
                                          uniform_counter; // next free table entry, used with atomicAdd.
 
         DeviceVector<Xoshiro128Plus>     generator;  // random number generators for the gpu
-        xorshift1024star                 random;     // random number generatofor the cpu
+        Xorshift1024Star                 random;     // random number generator for the cpu
 
         // To furthe optimize memory loading, the particle array is sorted according to the SRD cell-index.
         // This enables array striding, ie. coalesced memory loading:

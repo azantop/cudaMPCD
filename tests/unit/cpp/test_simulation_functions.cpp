@@ -21,7 +21,7 @@ TEST(TestSimulationFunctions, translate_particles) {
 
         uniform_counter.assign(mpc_cells.size(), 0);
         cpu::translate_particles(particles, mpc_cells, generator, grid_shift, test_volume, periodicity, 1,
-                                            ExperimentType::standart, uniform_counter, uniform_list);
+                                            ExperimentType::standard, uniform_counter, uniform_list);
 
         for (auto& particle : particles) {
             EXPECT_NEAR(particle.position.x, particle.velocity.x, 1e-6);
@@ -37,7 +37,7 @@ TEST(TestSimulationFunctions, translate_particles) {
 
     uniform_counter.assign(mpc_cells.size(), 0);
     cpu::translate_particles(particles, mpc_cells, generator, grid_shift, test_volume, periodicity, 1,
-                                        ExperimentType::standart, uniform_counter, uniform_list);
+                                        ExperimentType::standard, uniform_counter, uniform_list);
 
     EXPECT_EQ(uniform_counter[0], 10);
 }

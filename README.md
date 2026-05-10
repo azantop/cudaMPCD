@@ -16,7 +16,7 @@ params.volume_size = (10, 10, 100)
 params.periodicity = (1, 1, 0)
 params.drag = 0.001
 params.delta_t = 0.02
-params.experiment = "standart"
+params.experiment = "standard"
 params.algorithm = "srd"
 
 # Create and run simulation
