@@ -28,11 +28,18 @@ dependencies = ["numpy"]
 
 [project.optional-dependencies]
 test = ["pytest", "pytest-cuda", "pytest-benchmark", "hypothesis"]
-dev = ["pytest", "black", "mypy"]
+dev = ["pytest", "ruff"]
 
 [tool.scikit-build]
 cmake.args = ["-DBUILD_TESTING=ON"]
 cmake.build-type = "Release"
+
+[tool.ruff]
+line-length = 100
+exclude = ["*.ipynb"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "NPY", "N"]  # pycodestyle, pyflakes, isort, bugbear, pyupgrade, numpy, naming
 
 [tool.pytest.ini_options]
 testpaths = ["tests/python"]

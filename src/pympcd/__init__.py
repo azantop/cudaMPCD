@@ -1,1 +1,1 @@
-from ._pympcd import *
+from ._pympcd import *  # noqa: F403

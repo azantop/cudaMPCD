@@ -3,7 +3,7 @@ import scipy.stats as stats
 from _test_statistics import generate_gaussian_samples, generate_uniform_samples
 
 
-def testUniformDistribution():
+def test_uniform_distribution():
     """Test uniform random number quality"""
     samples = generate_uniform_samples(100000, 12345, 67890)
     samples = np.array(samples)
@@ -25,7 +25,7 @@ def testUniformDistribution():
     print(f"Uniform tests passed: KS p={p_value:.3f}, χ² p={chi2_p:.3f}")
 
 
-def testGaussianDistribution():
+def test_gaussian_distribution():
     """Test Gaussian random number quality"""
     samples = generate_gaussian_samples(100000, 12345, 67890)
     samples = np.array(samples)
@@ -35,7 +35,7 @@ def testGaussianDistribution():
     assert 0.99 < np.std(samples) < 1.01, f"Std should be ~1, got {np.std(samples)}"
 
     # Shapiro-Wilk normality test (on subset due to sample size limits)
-    subset = np.random.choice(samples, 5000, replace=False)
+    subset = np.random.default_rng().choice(samples, 5000, replace=False)
     shapiro_stat, shapiro_p = stats.shapiro(subset)
     assert shapiro_p > 0.01, f"Shapiro-Wilk test failed: p={shapiro_p}"
 
@@ -49,5 +49,5 @@ def testGaussianDistribution():
 
 
 if __name__ == "__main__":
-    testUniformDistribution()
-    testGaussianDistribution()
+    test_uniform_distribution()
+    test_gaussian_distribution()
