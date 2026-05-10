@@ -13,8 +13,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: astral-sh/setup-uv@v5
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -30,8 +28,8 @@ jobs:
             libhdf5-serial-dev \
             libgtest-dev
 
-      - name: Install Python package and dev tools
-        run: uv pip install --system ".[dev]" pybind11 pybind11
+      - name: Install pybind11
+        run: pip install pybind11
 
       - name: Build C++ targets
         run: |
@@ -41,6 +39,11 @@ jobs:
 
       - name: Run C++ unit tests
         run: ctest --test-dir build --output-on-failure
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Install Python package and dev tools
+        run: uv pip install --system ".[dev]"
 
       - name: Lint
         run: ruff check .
