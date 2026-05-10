@@ -32,6 +32,10 @@ namespace mpcd::cuda {
         DeviceVector<uint32_t>           uniform_list,    // the index lookup
                                          uniform_counter; // next free table entry, used with atomicAdd.
 
+        DeviceVector<uint32_t>           cell_prefix;     // exclusive prefix sum of per-cell counts
+        DeviceVector<uint32_t>           sort_tmp;        // scratch for multi-level prefix sum
+        bool                             use_tmp_sort_buffer; // true when VRAM allows a scatter-sort buffer
+
         DeviceVector<Xoshiro128Plus>     generator;  // random number generators for the gpu
         Xorshift1024Star                 random;     // random number generator for the cpu
 
@@ -58,6 +62,7 @@ namespace mpcd::cuda {
 
         void translationStep();  // SRD streaming step
         void collisionStep();    // SRD collision step
+        void sortParticles();    // GPU counting sort by cell_idx
 
         public:
 

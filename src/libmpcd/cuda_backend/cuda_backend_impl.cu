@@ -10,6 +10,7 @@
 #include "cuda_backend_impl.hpp"
 #include "simulation_kernels.hpp"
 #include "extended_collision.hpp"
+#include "sort_particles.hpp"
 
 namespace mpcd::cuda {
     /**
@@ -23,6 +24,9 @@ namespace mpcd::cuda {
                                                                    kahan_c(cell_states.size()),
                                                                    uniform_list(mpc_cells.size() * 4 * params.n),
                                                                    uniform_counter(mpc_cells.size()),
+                                                                   cell_prefix(mpc_cells.size()),
+                                                                   sort_tmp(mpc_cells.size()),
+                                                                   use_tmp_sort_buffer(false),
                                                                    step_counter(0),
                                                                    resort_rate(100),
                                                                    sample_counter(0),
@@ -101,6 +105,17 @@ namespace mpcd::cuda {
 
         cudaDeviceSynchronize();
         error_check( "distribute_particles" );
+
+        // Allocate scatter-sort buffer if VRAM is plentiful (>3× particle array size free).
+        // Falls back to in-place cyclic-permutation sort when memory is sparse.
+        {
+            size_t free_mem, total_mem;
+            cudaMemGetInfo(&free_mem, &total_mem);
+            use_tmp_sort_buffer = free_mem > particles.size() * sizeof(Particle) * 3;
+            if (use_tmp_sort_buffer)
+                particles_sorted.alloc(particles.size());
+        }
+
         std::cout << "gpu initialized ..." << std::endl;
 
     #ifdef USE_HDF5
@@ -216,18 +231,33 @@ namespace mpcd::cuda {
 
     // Backend operations overrides
 
+    void CudaBackendImpl::sortParticles() {
+        uniform_counter.set(0);
+        binParticles(particles, uniform_counter, cuda_config.block_count, cuda_config.block_size);
+        error_check("sort_binning");
+
+        computePrefixSum(uniform_counter, cell_prefix, sort_tmp);
+        error_check("sort_prefix_sum");
+
+        if (use_tmp_sort_buffer) {
+            moveParticles(particles, particles_sorted, cell_prefix, cuda_config.block_count, cuda_config.block_size);
+            error_check("sort_move");
+            std::swap(particles.device_store, particles_sorted.store);
+        } else {
+            writeTargetIndices(particles, cell_prefix, cuda_config.block_count, cuda_config.block_size);
+            error_check("sort_write_indices");
+            sortInPlace(particles, cuda_config.block_count, cuda_config.block_size);
+            error_check("sort_in_place");
+        }
+    }
+
     void CudaBackendImpl::step(int n_steps) {
         for (int i = 0; i < n_steps; i++) {
-            // MPC steps:
             translationStep();
             collisionStep();
 
-            // sort praticles array to improve memory access times
-            if ((step_counter++ % resort_rate) == 0) {
-                particles.pull();
-                std::sort(particles.begin(), particles.end(), [] (auto a, auto b) { return a.cell_idx < b.cell_idx; });
-                particles.push();
-            }
+            if ((step_counter++ % resort_rate) == 0)
+                sortParticles();
         }
     }
 

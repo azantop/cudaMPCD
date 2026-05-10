@@ -8,6 +8,7 @@ add_library(cuda_backend STATIC
     gpu_arrays.cu
     simulation_kernels.cu
     extended_collision.cu
+    sort_particles.cu
     cuda_allocator.cu
 )
 
