@@ -129,7 +129,9 @@ namespace mpcd::cuda {
                 uniform_list[particle.cell_idx + slot * mpc_cells.size()] = idx;
             else
                 particle.position = apply_periodic_boundaries( particle.position - grid_shift );
-            // if the lookup is full, the particle gets no shift because after the collision step particle are not shifted
+            // Table overflow: the particle keeps its pre-shift position so it is handled correctly in the collision step.
+            // The table holds 4n slots; cell occupancy is Poisson(n), so overflow needs >4n particles — 3√n σ above the
+            // mean. At n≥5 that is >6.7σ (p≈10⁻¹¹ per cell per step), making this branch physically insignificant.
 
             assert( particle.position.isFinite() ); // check for error in floating point math
             assert( particle.velocity.isFinite() );
