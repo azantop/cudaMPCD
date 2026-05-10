@@ -1,4 +1,6 @@
 # cudaMPCD
+
+[![CI](https://github.com/azantop/cudaMPCD/actions/workflows/ci.yml/badge.svg)](https://github.com/azantop/cudaMPCD/actions/workflows/ci.yml)
 Fast hydrodynamic solver using the method of multi-particle collision dynamics MPCD. Python frontend using pybind11 with backends implemented in C++ and CUDA for usage on CPU and GPUs. In the current state, this code can be used to simulate a Poiseuille flow, i.e. a flow between to parallel plates. This can be used for viscosity measurements. The code has implementations of 2 collision operators: standard stochastic rotation dynamics (SRD) and extended MPC with non-ideal equation-of-state. The current implementation was tuned for older GTX 2080Ti and Quadro RTX 6000 cards. 
 
 ## Usage

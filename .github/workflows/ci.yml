@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    name: Build & test (CPU)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            ninja-build \
+            libhdf5-dev \
+            libhdf5-serial-dev \
+            libgtest-dev
+
+      - name: Build C++ targets
+        run: cmake -B build -DBUILD_TESTING=ON -GNinja && cmake --build build
+
+      - name: Run C++ unit tests
+        run: ctest --test-dir build --output-on-failure
+
+      - uses: astral-sh/setup-uv@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python package and dev tools
+        run: uv pip install --system ".[dev]"
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Type check
+        run: pyright
+
+  conventional-commits:
+    name: Conventional commits
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate commit messages
+        run: |
+          git log origin/${{ github.base_ref }}..HEAD --format=%s | while IFS= read -r msg; do
+            if ! printf '%s' "$msg" | grep -qP '^(feat|fix|docs|style|refactor|test|build|chore|perf|ci|revert)(\([^)]+\))?(!)?: .+'; then
+              echo "Non-conventional commit: $msg"
+              exit 1
+            fi
+          done
