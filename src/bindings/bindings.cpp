@@ -15,6 +15,7 @@ using mpcd::api::SimulationHandle;
 using mpcd::SimulationParameters;
 using mpcd::ExperimentType;
 using mpcd::MPCDAlgorithm;
+using mpcd::CollisionKernel;
 
 /*
  * Helper function to convert a vector to a NumPy array.
@@ -154,6 +155,21 @@ PYBIND11_MODULE(_pympcd, m) {
                     [](const SimulationParameters &p) { return p.algorithm == MPCDAlgorithm::srd ? "srd" : "extended"; },
                     [](SimulationParameters &p, const std::string &algorithm) {
                         p.algorithm = algorithm == "srd" ? MPCDAlgorithm::srd : MPCDAlgorithm::extended;
+                    }
+                )
+        .def_property("collision_kernel",
+                    [](const SimulationParameters &p) -> std::string {
+                        switch (p.collision_kernel) {
+                            case CollisionKernel::trivial:   return "trivial";
+                            case CollisionKernel::sorting:   return "sorting";
+                            case CollisionKernel::optimized: return "optimized";
+                            default:                         return "optimized";
+                        }
+                    },
+                    [](SimulationParameters &p, const std::string &kernel) {
+                        if      (kernel == "trivial")   p.collision_kernel = CollisionKernel::trivial;
+                        else if (kernel == "sorting")   p.collision_kernel = CollisionKernel::sorting;
+                        else                            p.collision_kernel = CollisionKernel::optimized;
                     }
                 );
 

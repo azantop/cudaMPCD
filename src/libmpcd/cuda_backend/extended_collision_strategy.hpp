@@ -16,4 +16,16 @@ namespace mpcd::cuda {
         void collideParticles() override;
     };
 
+    struct TrivialExtendedMPCStrategy : public CollisionStrategy {
+         // Extra per-cell storage needed for SRD collision:
+        DeviceVector<mpcd::InertiaTensor<mpcd::Float>> inertia_tensors;
+        DeviceVector<mpcd::Vector>                     angular_momentum;
+        DeviceVector<mpcd::Vector>                     rotated_angular_momentum;
+        DeviceVector<mpcd::Vector>                     rotation_axes;
+
+        explicit TrivialExtendedMPCStrategy(BackendContext& ctx);
+        void sortParticles()    override {} // no sorting applied
+        void collideParticles() override {}
+    };
+
 } // namespace mpcd::cuda

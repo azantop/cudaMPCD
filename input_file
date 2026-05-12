@@ -10,6 +10,7 @@
         ------------ fluid -------------
 
         algorithm                    srd
+        collision_kernel       optimized
         density                       10
         temperature                  1.0
         delta_t                     0.02

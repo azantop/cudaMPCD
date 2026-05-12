@@ -57,6 +57,13 @@ namespace mpcd {
 
         std::cout << "using " << branch << " MPCD algorithm" << std::endl;
 
+        input_file >> parameter_name >> branch;
+        if      ( branch == "trivial" )   collision_kernel = CollisionKernel::trivial;
+        else if ( branch == "sorting" )   collision_kernel = CollisionKernel::sorting;
+        else                              collision_kernel = CollisionKernel::optimized;
+
+        std::cout << "using " << branch << " collision kernel" << std::endl;
+
         input_file >> parameter_name >> n;
         input_file >> parameter_name >> temperature;
         input_file >> parameter_name >> delta_t;

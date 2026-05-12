@@ -10,14 +10,21 @@ namespace mpcd {
     };
 
     enum class MPCDAlgorithm {
-        srd, // Simulate using SRD algorithm
+        srd,      // Simulate using SRD algorithm
         extended, // Simulate using extended algorithm for incompressible flow
+    };
+
+    enum class CollisionKernel {
+        trivial,   // scatter/reduce kernels — no sorting, easy to validate
+        sorting,   // adds particle sort for coalesced memory access
+        optimized, // warp-shared-memory implementation (default)
     };
 
     struct SimulationParameters
     {
-        ExperimentType experiment = ExperimentType::standard;
-        MPCDAlgorithm  algorithm = MPCDAlgorithm::srd;
+        ExperimentType  experiment        = ExperimentType::standard;
+        MPCDAlgorithm   algorithm         = MPCDAlgorithm::srd;
+        CollisionKernel collision_kernel  = CollisionKernel::optimized;
 
         std::array<int, 3>   periodicity = {1, 1, 1};
         std::array<float, 3> volume_size = {10.0f, 10.0f, 10.0f};

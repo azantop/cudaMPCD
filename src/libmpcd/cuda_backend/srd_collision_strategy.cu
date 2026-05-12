@@ -167,12 +167,129 @@ namespace mpcd::cuda {
     }
 
 
+    TrivialSRDStrategy::TrivialSRDStrategy(BackendContext& ctx)
+        : CollisionStrategy(ctx), rotation_axes(ctx.mpc_cells.size())
+    {}
+
+    // Trivial SRD kernels — plain strided scatter/reduce, no shared memory
+    namespace srd {
+
+        /**
+        *  @brief Scatter particles into cells: accumulate density and sum of velocities.
+        *         Uses addReduceOnly — no CoM accumulation needed for pure SRD.
+        */
+        __global__ void scatter(DeviceVector<Particle>         particles,
+                                DeviceVolumeContainer<MPCCell> mpc_cells)
+        {
+            size_t idx    = blockIdx.x * blockDim.x + threadIdx.x,
+                   stride = blockDim.x * gridDim.x;
+
+            for (auto end = particles.size(); idx < end; idx += stride) {
+                auto particle = gpu_utilities::texture_load(particles.data() + idx);
+                mpc_cells[particle.cell_idx].addReduceOnly(particle.velocity);
+            }
+        }
+
+        /**
+        *  @brief Average cell accumulators: produces mean_velocity per cell.
+        *         Uses averageReduceOnly — no CoM needed for pure SRD.
+        */
+        __global__ void averageCells(DeviceVolumeContainer<MPCCell> mpc_cells)
+        {
+            size_t idx    = blockIdx.x * blockDim.x + threadIdx.x,
+                   stride = blockDim.x * gridDim.x;
+
+            for (; idx < mpc_cells.size(); idx += stride)
+                mpc_cells[idx].averageReduceOnly();
+        }
+
+        /**
+        *  @brief Draw one random unit rotation axis per cell and store it.
+        *         One thread handles multiple cells via striding.
+        */
+        __global__ void generateAxes(DeviceVector<Xoshiro128Plus> generator,
+                                     DeviceVector<mpcd::Vector>   rotation_axes)
+        {
+            int  idx    = blockIdx.x * blockDim.x + threadIdx.x,
+                 stride = blockDim.x * gridDim.x;
+            auto random = generator[idx];
+
+            for (; idx < rotation_axes.size(); idx += stride)
+                rotation_axes[idx] = random.genUnitVector();
+
+            generator[blockIdx.x * blockDim.x + threadIdx.x] = random;
+        }
+
+        /**
+        *  @brief Apply SRD rotation to each particle and unapply the grid shift.
+        *         Per particle: v_final = v_mean + R(alpha, axis) * (v - v_mean)
+        */
+        __global__ void applyCollision(
+                DeviceVector<mpcd::Vector>     rotation_axes,
+                DeviceVector<Particle>         particles,
+                DeviceVolumeContainer<MPCCell> mpc_cells,
+                mpcd::Vector                   grid_shift,
+                mpcd::Vector                   volume_size,
+                mpcd::Float                    drag,
+                mpcd::Float                    delta_t)
+        {
+            size_t idx    = blockIdx.x * blockDim.x + threadIdx.x,
+                   stride = blockDim.x * gridDim.x;
+
+            float const sin_alpha = sinf((M_PI * 120) / 180);
+            float const cos_alpha = cosf((M_PI * 120) / 180);
+
+            auto apply_periodic_boundaries = [&](mpcd::Vector r) {
+                r.x = fmodf(r.x + 1.5f * volume_size.x, volume_size.x) - volume_size.x * 0.5f;
+                r.y = fmodf(r.y + 1.5f * volume_size.y, volume_size.y) - volume_size.y * 0.5f;
+                r.z = fmodf(r.z + 1.5f * volume_size.z, volume_size.z) - volume_size.z * 0.5f;
+                return r;
+            };
+
+            for (auto end = particles.size(); idx < end; idx += stride) {
+                auto particle = gpu_utilities::texture_load(particles.data() + idx);
+                auto cell_idx = particle.cell_idx;
+                auto axis     = rotation_axes[cell_idx];
+                auto mean_vel = mpc_cells[cell_idx].mean_velocity;
+
+                auto v_rel    = particle.velocity - mean_vel;
+
+                // Rodrigues rotation of v_rel by alpha around axis
+                auto v_para   = axis * v_rel.dotProduct(axis);
+                auto v_perp   = v_rel - v_para;
+                auto v_rot    = v_para + cos_alpha * v_perp + sin_alpha * v_perp.crossProduct(axis);
+
+                particle.velocity  = mean_vel + v_rot;
+                particle.velocity.x += drag * delta_t;
+                particle.position  = apply_periodic_boundaries(particle.position - grid_shift);
+                particle.cell_idx  = mpc_cells.getIndex(particle.position);
+
+                particles[idx] = particle;
+            }
+        }
+
+    } // namespace srd
+
     void TrivialSRDStrategy::collideParticles() {
-        // stub
+        // cells are cleared by CudaBackendImpl::collisionStep() before dispatch
+        srd::scatter<<<ctx.cuda_config.block_count, ctx.cuda_config.block_size>>>(ctx.particles, ctx.mpc_cells);
+        error_check("srd_trivial_scatter");
+
+        srd::averageCells<<<ctx.cuda_config.block_count, ctx.cuda_config.block_size>>>(ctx.mpc_cells);
+        error_check("srd_trivial_average_cells");
+
+        srd::generateAxes<<<ctx.cuda_config.block_count, ctx.cuda_config.block_size>>>(ctx.generator, rotation_axes);
+        error_check("srd_trivial_generate_axes");
+
+        srd::applyCollision<<<ctx.cuda_config.block_count, ctx.cuda_config.block_size>>>(
+            rotation_axes, ctx.particles, ctx.mpc_cells, ctx.grid_shift,
+            {ctx.parameters.volume_size[0], ctx.parameters.volume_size[1], ctx.parameters.volume_size[2]},
+            ctx.parameters.drag, ctx.parameters.delta_t);
+        error_check("srd_trivial_apply_collision");
     }
 
     void SortingSRDStrategy::collideParticles() {
-        // stub
+        CollisionStrategy::sortParticles(); // explicit call to base
     }
 
 } // namespace mpcd::cuda
