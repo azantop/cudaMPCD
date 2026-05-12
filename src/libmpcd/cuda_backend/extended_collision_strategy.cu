@@ -1,6 +1,7 @@
 #include <mpcd/api/simulation_parameters.hpp>
 
-#include "extended_collision.hpp"
+#include "extended_collision_strategy.hpp"
+#include "gpu_error_check.hpp"
 #include "common/mechanic.hpp"
 
 namespace mpcd::cuda {
@@ -54,49 +55,54 @@ namespace mpcd::cuda {
                                     and ((mpc_cells.getZIdx( cell_idx ) == sign) or layer); // wall layer?
             int  added_ghosts = {};
 
+            // pre assign ghost particles to include them into the shared memory partitioning:
+
             random.syncPhase();
-            if ( add_ghosts  )
+            if (add_ghosts)
                 for ( int i = 0; i < n_density; ++i )
                     if ( ( ( random.genUniformFloat() > shift ) xor layer ) xor sign )
                         ++added_ghosts;
 
             n_particles += added_ghosts;
 
-            // arrange thread groups to maximise shared memmory usage. if only particles of a few cells fit in memory, work in groups.
+            // dynamic partitioning of shared memory cache for individual threads/cooperative groups.
+            // The warp computes a prefix sum of actual per-cell particle counts, uses __ballot_sync to determine how many
+            // cells physically fit in the shared allocation, then partitions three arrays (particle_idx, particle_position, particle_velocity)
+            // into that space dynamically. The active_cells count governs sub-warp thread grouping on the fly.
 
-            int       prefix         = gpu_utilities::warp_prefix_sum( n_particles ); // where does the threads storage start?
+            int       prefix         = gpu_utilities::warp_prefix_sum(n_particles); // where does the threads storage start?
             // how many cells' particles fit into shared memory?
-            int const active_cells   = ::min( 8, __popc( __ballot_sync( -1u, prefix + n_particles < max_particles and cell_idx < mpc_cells.size() ) ) );
+            int const active_cells   = ::min(8, __popc(__ballot_sync(-1u, prefix + n_particles < max_particles and cell_idx < mpc_cells.size())));
             int const group_size     = 32 / active_cells;
-            int const sum            = __shfl_sync( -1u, prefix + n_particles, active_cells - 1 ); // total number of particles of the used number of cells.
+            int const sum            = __shfl_sync(-1u, prefix + n_particles, active_cells - 1); // total number of particles of the used number of cells.
             int       group_cell_idx = cell_idx;
 
             if ( group_size > 1 ) // communicate group variables betweeen grouped threads.
             {
                 auto group_root = threadIdx.x / group_size;
 
-                n_particles    = __shfl_sync( 0xFFFFFFFF, n_particles,  group_root );
-                layer          = __shfl_sync( 0xFFFFFFFF, layer,        group_root );
-                added_ghosts   = __shfl_sync( 0xFFFFFFFF, added_ghosts, group_root );
-                prefix         = __shfl_sync( 0xFFFFFFFF, prefix,       group_root );
-                group_cell_idx = __shfl_sync( 0xFFFFFFFF, cell_idx,     group_root );
+                n_particles    = __shfl_sync(0xFFFFFFFF, n_particles,  group_root);
+                layer          = __shfl_sync(0xFFFFFFFF, layer,        group_root);
+                added_ghosts   = __shfl_sync(0xFFFFFFFF, added_ghosts, group_root);
+                prefix         = __shfl_sync(0xFFFFFFFF, prefix,       group_root);
+                group_cell_idx = __shfl_sync(0xFFFFFFFF, cell_idx,     group_root);
 
                 add_ghosts = ( added_ghosts != 0 );
             }
 
             // decide if threads are left over and deactivate them:
             bool     const thread_active = prefix + n_particles < max_particles and group_cell_idx < mpc_cells.size();
-            uint32_t const mask          = __ballot_sync( 0xFFFFFFFF, thread_active ); // mask of participating threads for following __shfl operations.
+            uint32_t const mask          = __ballot_sync(0xFFFFFFFF, thread_active); // mask of participating threads for following __shfl operations.
 
             // define initial coordinate offset to improve calculation of the moment of intertia tensor as the cell centre.
             auto offset = mpc_cells.getPosition( group_cell_idx );
 
-            if ( thread_active )
+            if (thread_active)
             {
                 for ( int i = threadIdx.x % group_size, end = n_particles - added_ghosts; i < end; i += group_size ) // prepare lookup table: which indices will be loaded?
                     particle_idx[ prefix + i ] = group_cell_idx + i * mpc_cells.size();
 
-                if ( add_ghosts ) // in wall layers: add random "ghost" particles
+                if (add_ghosts) // in wall layers: fill pre-assigned random "ghost" particles slots
                 {
                     auto z_scale = sign ? ( layer ? 1 - shift : shift ) : ( layer ? shift : 1 - shift );
 
@@ -130,8 +136,9 @@ namespace mpcd::cuda {
                     particle_velocity[ i ] = particle.velocity;
                 }
             }
+            __syncwarp();
 
-            __syncwarp(); // ~~~ apply collision rule:
+            // ~~~ apply collision rule:
 
             if ( thread_active )
             {
@@ -315,4 +322,15 @@ namespace mpcd::cuda {
 
         generator[blockIdx.x * blockDim.x + threadIdx.x] = random; // save new state of the generators
     }
+
+    void ExtendedMPCStrategy::collideParticles() {
+        extendedCollision<<<ctx.cuda_config.sharing_blocks, 32, ctx.cuda_config.shared_bytes>>>(
+                                    ctx.particles, ctx.mpc_cells, ctx.generator.data(), ctx.grid_shift,
+                                    {ctx.parameters.volume_size[0], ctx.parameters.volume_size[1], ctx.parameters.volume_size[2]},
+                                    {ctx.parameters.periodicity[0], ctx.parameters.periodicity[1], ctx.parameters.periodicity[2]},
+                                    ctx.parameters.delta_t, ctx.parameters.drag, ctx.parameters.thermal_velocity, ctx.parameters.n,
+                                    ctx.uniform_counter, ctx.uniform_list, ctx.cuda_config.shared_bytes);
+        error_check("collision_step");
+    }
+
 } // namespace mpcd::cuda

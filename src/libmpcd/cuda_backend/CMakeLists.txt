@@ -3,13 +3,15 @@
 set(CMAKE_CUDA_FLAGS_DEBUG "-G -g")
 
 add_library(cuda_backend STATIC
+    backend_context.cu
+    collision_strategy.cu
+    cuda_allocator.cu
     cuda_backend.cu
     cuda_backend_impl.cu
+    extended_collision_strategy.cu
     gpu_arrays.cu
     simulation_kernels.cu
-    extended_collision.cu
     sort_particles.cu
-    cuda_allocator.cu
 )
 
 set_target_properties(cuda_backend PROPERTIES
