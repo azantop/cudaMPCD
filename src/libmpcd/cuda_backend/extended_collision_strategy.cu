@@ -306,10 +306,12 @@ namespace mpcd::cuda {
                     // ~~~ unified write back by switching pointer for usual / ghost particles:
 
                     auto addr = particle_idx[i] < particles.size() ? particles.data() : ghost_particles;
+                    auto cidx = mpc_cells.getIndex(particle_position[i]);
+
                     *(addr + particle_idx[i]) = {uint16_t(0),
                                                  static_cast<int16_t>(particle_idx [ i ] < particles.size() ? 0u : 1u),
                                                  particle_position[i],
-                                                 particle_velocity[i], };
+                                                 particle_velocity[i], cidx};
                 }
             }
             __syncwarp();

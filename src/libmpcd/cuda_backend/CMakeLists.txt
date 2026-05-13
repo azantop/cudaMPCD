@@ -22,6 +22,11 @@ set_target_properties(cuda_backend PROPERTIES
     POSITION_INDEPENDENT_CODE ON
 )
 
+target_compile_options(cuda_backend PRIVATE
+  $<$<CONFIG:Debug>:$<$<COMPILE_LANGUAGE:CXX>:-O0 -g>>
+  $<$<CONFIG:Debug>:$<$<COMPILE_LANGUAGE:CUDA>:-O0 -g -G -lineinfo>>
+)
+
 target_include_directories(cuda_backend
     PRIVATE ${CMAKE_SOURCE_DIR}/src/libmpcd
     PUBLIC ${CMAKE_SOURCE_DIR}/include
