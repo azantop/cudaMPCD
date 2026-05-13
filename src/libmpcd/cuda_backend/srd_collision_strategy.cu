@@ -288,8 +288,8 @@ namespace mpcd::cuda {
         error_check("srd_trivial_apply_collision");
     }
 
-    void SortingSRDStrategy::collideParticles() {
-        CollisionStrategy::sortParticles(); // explicit call to base
+    void SortingSRDStrategy::sortParticles() {
+        CollisionStrategy::sortParticles(); // bypass TrivialSRDStrategy's no-op, call counting sort
     }
 
 } // namespace mpcd::cuda

@@ -163,7 +163,10 @@ namespace mpcd::cuda {
             __device__ __host__ value_type*  data() const { return store; }
 
             // modify:
-            __host__ void set( int i ) { error_check( cudaMemset( store, i, sizeof( T ) * count ), "gpu_vector set" ); }
+            __host__ void set( int i ) {
+                cudaMemset( store, i, sizeof( T ) * count );
+                error_check((std::string("Set DeviceVector<") + typeid(T).name() + ">: " + std::to_string(count) + " elements").c_str());
+            }
 
             T get()
             {

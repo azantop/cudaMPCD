@@ -12,6 +12,7 @@ add_library(cuda_backend STATIC
     gpu_arrays.cu
     simulation_kernels.cu
     sort_particles.cu
+    srd_collision_strategy.cu
 )
 
 set_target_properties(cuda_backend PROPERTIES
