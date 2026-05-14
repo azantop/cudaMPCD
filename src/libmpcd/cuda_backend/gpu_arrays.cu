@@ -2,6 +2,7 @@
 #include "common/particle.hpp"
 #include "common/mpc_cell.hpp"
 #include "common/random.hpp"
+#include "common/mechanic.hpp"
 
 #include "gpu_arrays.hpp"
 #include "gpu_error_check.hpp"
@@ -194,6 +195,7 @@ namespace mpcd::cuda {
     template class DeviceVector<MPCCell>;
     template class DeviceVector<FluidState>;
     template class DeviceVector<Xoshiro128Plus>;
+    template class DeviceVector<mpcd::InertiaTensor<float>>;
 
     template DeviceVector<float> push(std::vector<float> const&);
     template DeviceVector<double> push(std::vector<double> const&);

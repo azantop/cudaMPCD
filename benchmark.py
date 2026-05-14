@@ -8,6 +8,7 @@ Usage:
     python benchmark_strategies.py
 """
 
+import ctypes
 import timeit
 
 import pympcd
@@ -46,15 +47,23 @@ def make_sim(algorithm: str, kernel: str, size: tuple) -> pympcd.Simulation:
     return pympcd.Simulation(params, "cuda")
 
 
+libcuda = ctypes.CDLL("libcudart.so")
+
+
 def run_bench(sim: pympcd.Simulation) -> float:
     """Returns best ms-per-step over N_REPEATS runs of N_LOOPS calls."""
     for _ in range(WARMUP_CALLS):
         sim.step(STEPS_PER_CALL)
 
-    raw = timeit.repeat(lambda: sim.step(STEPS_PER_CALL), number=N_LOOPS, repeat=N_REPEATS)
+    libcuda.cudaDeviceSynchronize()
+    raw = timeit.repeat(
+        lambda: (sim.step(STEPS_PER_CALL), libcuda.cudaDeviceSynchronize()),
+        number=N_LOOPS,
+        repeat=N_REPEATS,
+    )
 
-    # min across repeats, divided by total steps — gives ms per simulation step
-    return min(raw) / (N_LOOPS * STEPS_PER_CALL) * 1e3
+    # mean across repeats, divided by total steps — gives ms per simulation step
+    return sum(raw) / (N_REPEATS * N_LOOPS * STEPS_PER_CALL) * 1e3
 
 
 # ── run ────────────────────────────────────────────────────────────────────────

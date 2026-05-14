@@ -39,8 +39,6 @@ namespace mpcd::cuda {
 
         if ( properties.major < 7 )
         {
-            std::cout << "cuda: pascal architecture ... " << std::endl;
-
             if ( cuda_config.block_count > 28 )    // p100
             {
                 cuda_config.block_size = 64;
@@ -68,8 +66,6 @@ namespace mpcd::cuda {
         }
         else if ( properties.major < 8 ) // Turing:
         {
-            std::cout << "cuda: turing architecture ... " << std::endl;
-
             cuda_config.block_size = 64;
             cuda_config.block_count *= 4;
 
@@ -78,8 +74,6 @@ namespace mpcd::cuda {
         }
         else // Ampere:
         {
-            std::cout << "cuda: ampere architecture ... " << std::endl;
-
             cuda_config.block_size = 64;
             cuda_config.block_count *= 8;
 
@@ -122,8 +116,6 @@ namespace mpcd::cuda {
             if (use_tmp_sort_buffer)
                 particles_sorted.alloc(particles.size());
         }
-
-        std::cout << "gpu initialized ..." << std::endl;
 
     #ifdef USE_HDF5
         // Create output file
