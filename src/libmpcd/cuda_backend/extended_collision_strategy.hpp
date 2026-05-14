@@ -25,7 +25,21 @@ namespace mpcd::cuda {
 
         explicit TrivialExtendedMPCStrategy(BackendContext& ctx);
         void sortParticles()    override {} // no sorting applied
-        void collideParticles() override {}
+        void collideParticles() override;
+    };
+
+    /**
+    *  @brief TrivialExtendedMPCStrategy with a particle sort prepended to the collision step.
+    *
+    *         Sorting aligns particle memory order with cell order before the uniform_list
+    *         loops in collideAndAccumulate, improving coalesced global memory access.
+    *         This is the primary performance lever for the trivial extended kernel and
+    *         makes it a fair baseline for comparison against the fused extendedCollision.
+    */
+    struct SortingExtendedMPCStrategy : public TrivialExtendedMPCStrategy {
+        using TrivialExtendedMPCStrategy::TrivialExtendedMPCStrategy;
+        void sortParticles() override; // re-enables counting sort, bypassing TrivialExtendedMPCStrategy's no-op
+        // collideParticles() inherited from TrivialExtendedMPCStrategy
     };
 
 } // namespace mpcd::cuda

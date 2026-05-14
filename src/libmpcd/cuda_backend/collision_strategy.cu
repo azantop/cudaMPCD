@@ -40,7 +40,12 @@ namespace mpcd::cuda {
                     default:                         return std::make_unique<SRDStrategy>(ctx);
                 }
             case MPCDAlgorithm::extended:
-                return std::make_unique<ExtendedMPCStrategy>(ctx);
+                switch (ctx.parameters.collision_kernel) {
+                    case CollisionKernel::trivial:   return std::make_unique<TrivialExtendedMPCStrategy>(ctx);
+                    case CollisionKernel::sorting:   return std::make_unique<SortingExtendedMPCStrategy>(ctx);
+                    case CollisionKernel::optimized: return std::make_unique<ExtendedMPCStrategy>(ctx);
+                    default:                         return std::make_unique<ExtendedMPCStrategy>(ctx);
+                }
             default:
                 return std::make_unique<SRDStrategy>(ctx);
         }
