@@ -21,7 +21,7 @@ WARMUP_CALLS = 3  # calls before timing starts
 
 # ── system sizes ───────────────────────────────────────────────────────────────
 SIZES = [
-    (1000, 1000, 20),
+    (600, 600, 20),
 ]
 
 ALGORITHMS = ["srd", "extended"]
@@ -51,7 +51,7 @@ libcuda = ctypes.CDLL("libcudart.so")
 
 
 def run_bench(sim: pympcd.Simulation) -> float:
-    """Returns best ms-per-step over N_REPEATS runs of N_LOOPS calls."""
+    """Returns min ms-per-step over N_REPEATS runs of N_LOOPS calls."""
     for _ in range(WARMUP_CALLS):
         sim.step(STEPS_PER_CALL)
 
@@ -62,8 +62,8 @@ def run_bench(sim: pympcd.Simulation) -> float:
         repeat=N_REPEATS,
     )
 
-    # mean across repeats, divided by total steps — gives ms per simulation step
-    return sum(raw) / (N_REPEATS * N_LOOPS * STEPS_PER_CALL) * 1e3
+    # min across repeats, divided by total steps — gives ms per simulation step
+    return min(raw) / (N_LOOPS * STEPS_PER_CALL) * 1e3
 
 
 # ── run ────────────────────────────────────────────────────────────────────────
@@ -74,7 +74,7 @@ for size in SIZES:
         f"srd n=10 ({size[0] * size[1] * size[2] * 10:,} p)  "
         f"ext n=20 ({size[0] * size[1] * size[2] * 20:,} p)"
     )
-    print(f"  timing: best of {N_REPEATS}×{N_LOOPS} calls, {STEPS_PER_CALL} steps/call")
+    print(f"  timing: min of {N_REPEATS}×{N_LOOPS} calls, {STEPS_PER_CALL} steps/call")
     print(f"{'═' * 66}")
     print(f"  {'algorithm':10s}  {'kernel':10s}  {'ms/step':>9s}  {'speedup vs trivial':>18s}")
     print(f"  {'-' * 10}  {'-' * 10}  {'-' * 9}  {'-' * 18}")

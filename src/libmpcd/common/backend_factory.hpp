@@ -14,12 +14,10 @@
 namespace mpcd {
     std::unique_ptr<Backend> create_backend(SimulationParameters const& params, std::string const& backend_type) {
         if (backend_type == "cpu") {
-            std::cout << "Creating CPU backend" << std::endl;
             return std::make_unique<cpu::CPUBackend>(params);
         }
         #ifdef USE_CUDA
         else if (backend_type == "cuda") {
-            std::cout << "Creating CUDA backend" << std::endl;
             return std::make_unique<cuda::CudaBackend>(params);
         }
         #endif
