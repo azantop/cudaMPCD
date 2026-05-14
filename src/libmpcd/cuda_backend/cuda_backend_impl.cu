@@ -109,6 +109,17 @@ namespace mpcd::cuda {
     }
 
     void CudaBackendImpl::step(int n_steps) {
+        // Wrap with cudaProfilerStart/Stop so Nsight Systems/Compute captures
+        // exactly this region.  Three things to look for:
+        //   1. Occupancy — __launch_bounds__ pins the register budget; Nsight
+        //      should show achieved occupancy near the target warps-per-SM.
+        //   2. Memory bandwidth — trivial/sorting variants are bandwidth-bound;
+        //      the roofline chart should show them near the HBM/GDDR ceiling.
+        //      The fused kernel trades bandwidth for compute and sits above it.
+        //   3. Warp efficiency — the cooperative cell-grouping logic inside the
+        //      fused kernel keeps threads in lock-step within a warp; Nsight's
+        //      "Warp State Statistics" should confirm low divergence.
+        cudaProfilerStart();
         for (int i = 0; i < n_steps; i++) {
             translationStep();
             collisionStep();
@@ -116,6 +127,7 @@ namespace mpcd::cuda {
             if ((ctx.step_counter++ % ctx.resort_rate) == 0)
                 sortParticles();
         }
+        cudaProfilerStop();
     }
 
     size_t CudaBackendImpl::getNParticles() {

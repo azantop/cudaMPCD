@@ -2,7 +2,45 @@
 
 [![CI](https://github.com/azantop/cudaMPCD/actions/workflows/ci.yml/badge.svg)](https://github.com/azantop/cudaMPCD/actions/workflows/ci.yml)
 
-Fast hydrodynamic solver using the method of multi-particle collision dynamics MPCD. Python frontend using pybind11 with backends implemented in C++ and CUDA for usage on CPU and GPUs. In the current state, this code can be used to simulate a Poiseuille flow, i.e. a flow between to parallel plates. This can be used for viscosity measurements. The code has implementations of 2 collision operators: standard stochastic rotation dynamics (SRD) and extended MPC with non-ideal equation-of-state. The current implementation was tuned for older GTX 2080Ti and Quadro RTX 6000 cards. 
+Fast hydrodynamic solver using the method of multi-particle collision dynamics MPCD. Python frontend using pybind11 with backends implemented in C++ and CUDA for usage on CPU and GPUs. In the current state, this code can be used to simulate a Poiseuille flow, i.e. a flow between to parallel plates. This can be used for viscosity measurements. The code has implementations of 2 collision operators: standard stochastic rotation dynamics (SRD) and extended MPC with non-ideal equation-of-state.
+
+## Architecture
+
+```
+pympcd (Python)              src/pympcd/__init__.py
+    ↓
+_pympcd (pybind11 module)    src/bindings/bindings.cpp
+    ↓
+SimulationHandle (API)       include/mpcd/api/simulation_handle.hpp
+    ↓  (bridge pattern)
+Backend (abstract)           src/libmpcd/common/backend.hpp
+    ├── CPUBackend            src/libmpcd/cpu_backend/
+    └── CUDABackend           src/libmpcd/cuda_backend/
+```
+
+Each MPCD time step consists of a translation step and a collision step. The collision step dispatches on both the algorithm and the kernel variant:
+
+| `collision_kernel` | SRD | Extended |
+|---|---|---|
+| `"trivial"` | scatter/reduce, no shared memory | 6-pass multi-kernel baseline |
+| `"sorting"` | trivial + counting sort prepended | trivial + counting sort prepended |
+| `"optimized"` | warp-cooperative fused kernel | warp-cooperative fused kernel |
+
+The kernel fusion keeps particle data in shared memory across the full collision step, eliminating repeated global-memory loads/stores between steps of the algorithm. Warp-level communications and reductions are hand-written using `__shfl_sync` / `__ballot_sync` rather than CUB, since the cooperative grouping logic (dynamic sub-warp partitioning based on per-cell particle counts) does not map cleanly onto CUB's fixed collective abstractions.
+
+The extended algorithm in particular benefits strongly from kernel fusion: a fully decomposed scatter/reduce is structurally impossible here due to the stochastic collision gate and the circular dependency in momentum-conserving thermalisation in cell subgroups. The fused kernel resolves both by keeping all per-cell and particle states in shared memory within a single launch.
+
+## Performance
+
+Benchmarked on Ampere (1000×1000×20 cells, n=20 particles/cell):
+
+| kernel | ms / step | speedup |
+|---|---|---|
+| trivial | 378 | 1.00× |
+| sorting | 189 | 2.00× |
+| optimized | 94 | 4.04× |
+
+Sorting alone gives 2× from coalesced memory access. Kernel fusion adds another 2× on top by eliminating repeated global-memory passes. Both contributions are roughly equal on Ampere.
 
 ## Usage
 
@@ -21,6 +59,7 @@ params.drag = 0.001
 params.delta_t = 0.02
 params.experiment = "standard"
 params.algorithm = "srd"
+params.collision_kernel = "optimized"  # "trivial" | "sorting" | "optimized"
 
 # Create and run simulation
 sim = pympcd.Simulation(params, "cuda")
@@ -96,6 +135,16 @@ cd build
 cmake ..
 cmake --build .
 cmake --install .
+```
+
+### Docker
+
+A Dockerfile is provided for reproducible GPU environments:
+```bash
+docker build -t cudampcd .
+docker run --gpus all -v $(pwd):/workspace -p 8888:8888 cudampcd
+# inside container:
+pip install .
 ```
 
 If you find this repository helpful, please consider citing our article (doi.org/10.1063/5.0037934)
