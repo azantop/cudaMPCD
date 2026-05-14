@@ -14,7 +14,7 @@ namespace mpcd::cuda {
         *          (ii)  thrermalised in soubgroups
         *          (iii) angular momentum conservation
         */
-        __global__ __launch_bounds__(32, 8) void fusedCollision(DeviceVector<Particle> particles,
+        __global__ __launch_bounds__(32) void fusedCollision(DeviceVector<Particle> particles,
                                                                 DeviceVolumeContainer<MPCCell> mpc_cells,
                                                                 Xoshiro128Plus* generator,
                                                                 mpcd::Vector grid_shift,

@@ -9,7 +9,7 @@ namespace mpcd::cuda {
     /**
     *  @brief This function applies the SRD collision step to the fluid particles
     */
-    __global__ void __launch_bounds__(64, 8) srdCollision(DeviceVector<Particle> particles, DeviceVolumeContainer<MPCCell> mpc_cells,
+    __global__ void __launch_bounds__(32) srdCollision(DeviceVector<Particle> particles, DeviceVolumeContainer<MPCCell> mpc_cells,
                                                             Xoshiro128Plus* generator,
                                                             mpcd::Vector grid_shift,
                                                             mpcd::Vector volume_size,

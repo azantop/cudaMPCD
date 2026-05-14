@@ -19,7 +19,7 @@ namespace mpcd {
         xz = {},
         yz = {};
 
-        __device__ SymmetricMatrix() {}
+        __host__ __device__ SymmetricMatrix() {}
         __device__ SymmetricMatrix( T _xx, T _yy, T _zz, T _xy, T _xz, T _yz ) : xx {_xx }, yy {_yy }, zz {_zz }, xy {_xy }, xz {_xz }, yz {_yz } {}
 
         __device__ T trace()       const { return xx + yy + zz; }
@@ -101,7 +101,7 @@ namespace mpcd {
         using base_class::yz;
 
         // ~~~ ctors:
-        __device__ InertiaTensor() {}
+        __host__ __device__ InertiaTensor() {}
 
         // ~~~ functions:
         __device__ void shiftFrame( mpcd::Vector shift, T const& mass = 1 ) // parallel axis theorem
