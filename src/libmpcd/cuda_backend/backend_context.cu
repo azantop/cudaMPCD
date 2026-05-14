@@ -51,11 +51,11 @@ namespace mpcd::cuda {
             }
             else if ( cuda_config.block_count > 14 )         // gtx 1070 etc.
             {
-                cuda_config.block_size = 128;
+                cuda_config.block_size = 128;  // 4 warps per SM
                 cuda_config.block_count *= 4;
 
                 cuda_config.shared_bytes   = properties.sharedMemPerMultiprocessor / ( 4 * 4 );
-                cuda_config.sharing_blocks = properties.multiProcessorCount * 4 * 4;  // 4 warps per SM, 4x occupancy.
+                cuda_config.sharing_blocks = properties.multiProcessorCount * 4 * 4;  // 4 warps per SM
             }
             else                            // gtx 960
             {
@@ -63,10 +63,10 @@ namespace mpcd::cuda {
                 cuda_config.block_count *= 2;
 
                 cuda_config.shared_bytes   = properties.sharedMemPerMultiprocessor / ( 2 * 2 );
-                cuda_config.sharing_blocks = properties.multiProcessorCount * 2 * 2;  // 2 warps per SM, 2x occupancy.
+                cuda_config.sharing_blocks = properties.multiProcessorCount * 2 * 2;
             }
         }
-        else // Turing:
+        else if ( properties.major < 8 ) // Turing:
         {
             std::cout << "cuda: turing architecture ... " << std::endl;
 
@@ -74,7 +74,17 @@ namespace mpcd::cuda {
             cuda_config.block_count *= 4;
 
             cuda_config.shared_bytes   = properties.sharedMemPerMultiprocessor / ( 2 * 4 );
-            cuda_config.sharing_blocks = properties.multiProcessorCount * 2 * 4;  // 4 warps per SM, 4x occupancy.
+            cuda_config.sharing_blocks = properties.multiProcessorCount * 2 * 4;
+        }
+        else // Ampere:
+        {
+            std::cout << "cuda: ampere architecture ... " << std::endl;
+
+            cuda_config.block_size = 64;
+            cuda_config.block_count *= 8;
+
+            cuda_config.shared_bytes   = properties.sharedMemPerMultiprocessor / ( 2 * 8 );
+            cuda_config.sharing_blocks = properties.multiProcessorCount * 2 * 8;
         }
 
         // seed the parallel random number generators
