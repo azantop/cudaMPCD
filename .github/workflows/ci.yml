@@ -63,7 +63,7 @@ jobs:
 
       - name: Validate commit messages
         run: |
-          git log origin/${{ github.base_ref }}..HEAD --format=%s | while IFS= read -r msg; do
+          git log origin/${{ github.base_ref }}..HEAD --no-merges --format=%s | while IFS= read -r msg; do
             if ! printf '%s' "$msg" | grep -qP '^(feat|fix|docs|style|refactor|test|build|chore|perf|ci|revert)(\([^)]+\))?(!)?: .+'; then
               echo "Non-conventional commit: $msg"
               exit 1
