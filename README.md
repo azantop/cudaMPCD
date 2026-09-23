@@ -28,19 +28,24 @@ Each MPCD time step consists of a translation step and a collision step. The col
 
 The kernel fusion keeps particle data in shared memory across the full collision step, eliminating repeated global-memory loads/stores between steps of the algorithm. Warp-level communications and reductions are hand-written using `__shfl_sync` / `__ballot_sync` rather than CUB, since the cooperative grouping logic (dynamic sub-warp partitioning based on per-cell particle counts) does not map cleanly onto CUB's fixed collective abstractions.
 
-The extended algorithm in particular benefits strongly from kernel fusion: a fully decomposed scatter/reduce is structurally impossible here due to the stochastic collision gate and the circular dependency in momentum-conserving thermalisation in cell subgroups. The fused kernel resolves both by keeping all per-cell and particle states in shared memory within a single launch.
+The extended algorithm in particular benefits strongly from kernel fusion. A fully decomposed scatter/reduce *is* possible despite the stochastic collision gate and the circular dependency in momentum-conserving thermalisation in cell subgroups, but each decomposition step adds a global synchronisation point and round-trips per-cell and particle state through global memory, which is expensive for a bandwidth-bound kernel. The fused kernel keeps that state in shared memory within a single launch instead.
 
 ## Performance
 
-Benchmarked on Ampere (1000×1000×20 cells, n=20 particles/cell):
+Measured on an RTX A6000, 600×600×20 cells, timing is the min of 2×20 calls at 10 steps per call:
 
-| kernel | ms / step | speedup |
-|---|---|---|
-| trivial | 378 | 1.00× |
-| sorting | 189 | 2.00× |
-| optimized | 94 | 4.04× |
+| algorithm | kernel | ms / step | speedup |
+|---|---|---|---|
+| srd | trivial | 126.1 | 1.00× |
+| srd | sorting | 45.1 | 2.80× |
+| srd | optimized | 40.2 | 3.14× |
+| extended | trivial | 321.8 | 1.00× |
+| extended | sorting | 130.9 | 2.46× |
+| extended | optimized | 86.7 | 3.71× |
 
-Sorting alone gives 2× from coalesced memory access. Kernel fusion adds another 2× on top by eliminating repeated global-memory passes. Both contributions are roughly equal on Ampere.
+Sorting alone gives most of its gain from coalesced memory access. Kernel fusion adds the rest by eliminating repeated global-memory passes.
+
+Treat these as one operating point, not a fixed property of the kernels. The speedup moves with system size, particle density and timestep, and the block residency in `backend_context.cu` is sized per architecture, so a production run should be tuned to its card rather than assume these numbers. Reproduce with `benchmark.py`, which selects between the three kernel variants at runtime.
 
 ## Usage
 
@@ -139,7 +144,7 @@ cmake --install .
 
 ### Docker
 
-A Dockerfile is provided for reproducible GPU environments:
+A Dockerfile is provided as a build environment with the CUDA toolchain:
 ```bash
 docker build -t cudampcd .
 docker run --gpus all -v $(pwd):/workspace -p 8888:8888 cudampcd
